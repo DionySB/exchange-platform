@@ -16,4 +16,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', [RouteController::class, 'index']);
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
-Route::get('summary-info', [CoinCallController::class, 'getSummaryInfo']);
+Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
+Route::get('option-orderbook/{symbol}', [CoinCallController::class, 'getOptionOrderBook']);
+//Route::get('orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getSpotMarketOrderBook']);
+
+
