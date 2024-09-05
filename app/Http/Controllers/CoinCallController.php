@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 class CoinCallController extends Controller
 {
-    private function apiRequest($uri)
+    private function apiRequest($uri, $params = [])
     {
         $apiKey = '/5AeyqmVeF7YKVetwCgLvnifokYmpnM5giu4VcqQLoA=';
         $secretKey = '7IAXOK9/ofbLSydaL52JR2EKouCSmD81bvWiFbtDOd0=';
@@ -12,6 +12,12 @@ class CoinCallController extends Controller
         $tsDiff = 5000;
 
         $url = "https://api.coincall.com{$uri}";
+
+        if ($params) {
+            $queryString = http_build_query($params);
+            $url .= "?{$queryString}";
+        }
+
         $prehashString = "GET{$uri}?uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff={$tsDiff}";
 
         $signature = hash_hmac('sha256', $prehashString, $secretKey);
@@ -37,7 +43,6 @@ class CoinCallController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false
         ));
-
         $response = curl_exec($curl);
         curl_close($curl);
 
@@ -47,6 +52,7 @@ class CoinCallController extends Controller
     public function getAccountInfo()
     {
         $uri = '/open/user/info/v1';
+
         return $this->apiRequest($uri);
     }
 
@@ -78,22 +84,23 @@ class CoinCallController extends Controller
     public function getOptionOrderBook($symbol)
     {
         //BTCUSD-6JUN23-24000-C
+        //ETHUSD
         $uri = '/open/option/order/orderbook/v1/' . $symbol;
+
         return $this->apiRequest($uri);
     }
 
-    public function getSpotMarketOrderBook($symbol = 'TRXUSD', $depth = 1)
+    public function getSpotMarketOrderBook($symbol, $depth)
     {
+        $params = [
+            'symbol' => $symbol,
+            'depth' => $depth,
+        ];
+        $uri = '/open/spot/market/orderbook';
 
-        $uri = "/open/spot/market/orderbook?symbol={$symbol}&depth={$depth}";
-        $response = $this->apiRequest($uri);
-
-        return $response;
+        return $this->apiRequest($uri, $params);
     }
 
-    /**
-     * test
-     */
     public function getSymbols()
     {
         $uri = '/open/futures/market/symbol/v1';
