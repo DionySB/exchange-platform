@@ -11,15 +11,15 @@ class CoinCallController extends Controller
         $timestamp = round(microtime(true) * 1000);
         $tsDiff = 5000;
 
-        $url = "https://api.coincall.com{$uri}";
-
         if ($params) {
             $queryString = http_build_query($params);
-            $url .= "?{$queryString}";
+            $uri .= '?' . $queryString;
+            $prehashString = "GET{$uri}&uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff={$tsDiff}";
+        } else {
+            $prehashString = "GET{$uri}?uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff={$tsDiff}";
         }
 
-        $prehashString = "GET{$uri}?uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff={$tsDiff}";
-
+        $url = "https://api.coincall.com{$uri}";
         $signature = hash_hmac('sha256', $prehashString, $secretKey);
         $signature = strtoupper($signature);
 
@@ -43,6 +43,7 @@ class CoinCallController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false
         ));
+
         $response = curl_exec($curl);
         curl_close($curl);
 
@@ -75,6 +76,7 @@ class CoinCallController extends Controller
                     ];
                 }
             }
+
             return ['error' => 'Moeda não encontrada'];
         }
 
@@ -83,24 +85,26 @@ class CoinCallController extends Controller
 
     public function getOptionOrderBook($symbol)
     {
-        //BTCUSD-6JUN23-24000-C
-        //ETHUSD
         $uri = '/open/option/order/orderbook/v1/' . $symbol;
 
         return $this->apiRequest($uri);
     }
 
-    public function getSpotMarketOrderBook($symbol, $depth)
+    public function getSpotMarketOrderBook ($symbol, $depth = 1)
     {
         $params = [
-            'symbol' => $symbol,
             'depth' => $depth,
+            'symbol' => $symbol,
+
         ];
         $uri = '/open/spot/market/orderbook';
 
         return $this->apiRequest($uri, $params);
     }
 
+    /**
+     * test
+     */
     public function getSymbols()
     {
         $uri = '/open/futures/market/symbol/v1';
