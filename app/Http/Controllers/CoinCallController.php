@@ -11,13 +11,15 @@ class CoinCallController extends Controller
         $timestamp = round(microtime(true) * 1000);
         $tsDiff = 5000;
 
-        $prehashString = "GET{$uri}?uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff=5000";
+        $url = "https://api.coincall.com{$uri}";
+        $prehashString = "GET{$uri}?uuid={$apiKey}&ts={$timestamp}&x-req-ts-diff={$tsDiff}";
+
         $signature = hash_hmac('sha256', $prehashString, $secretKey);
         $signature = strtoupper($signature);
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.coincall.com{$uri}?",
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -33,8 +35,9 @@ class CoinCallController extends Controller
                 "X-REQ-TS-DIFF: {$tsDiff}",
             ),
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYHOST => false
         ));
+
         $response = curl_exec($curl);
         curl_close($curl);
 
@@ -74,18 +77,30 @@ class CoinCallController extends Controller
 
     public function getOptionOrderBook($symbol)
     {
+        //BTCUSD-6JUN23-24000-C
         $uri = '/open/option/order/orderbook/v1/' . $symbol;
         return $this->apiRequest($uri);
     }
 
-    public function getSpotMarketOrderBook($symbol, $depth = 1)
+    public function getSpotMarketOrderBook($symbol = 'TRXUSD', $depth = 1)
     {
-    /*  $uri = '/open/spot/market/orderbook?symbol=' . $symbol . '&depth=' . $depth;
+
+        $uri = "/open/spot/market/orderbook?symbol={$symbol}&depth={$depth}";
         $response = $this->apiRequest($uri);
 
         return $response;
-    */
     }
 
+    /**
+     * test
+     */
+    public function getSymbols()
+    {
+        $uri = '/open/futures/market/symbol/v1';
+        $response = $this->apiRequest($uri);
+
+        return $response;
+    }
 }
+
 
