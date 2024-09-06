@@ -15,11 +15,33 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/', [RouteController::class, 'index']);
+
+//------------------------------------ Get User Info(SIGNED) -----------------------------------//
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
+
+//------------------------------------ Get Account Summary(SIGNED) -----------------------------------//
 Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
+
+//------------------------------------ Get OrderBook(SIGNED) -----------------------------------//
 Route::get('option-orderbook/{symbol}', [CoinCallController::class, 'getOptionOrderBook']);
+
+//------------------------------------ Get Orderbook(SIGNED) 'depth data' -----------------------------------//
 Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getSpotMarketOrderBook']);
-Route::get('/symbols', [CoinCallController::class, 'getSymbols']);
+
+//------------------------------------ Place Order(SIGNED) -----------------------------------//
+Route::post('create-order', [CoinCallController::class, 'createOrder']);
+
+//------------------------------------ Cancel Order(SIGNED) -----------------------------------//
+Route::post('cancel-order', [CoinCallController::class, 'cancelOrder']);
+
+//------------------------------------ Query Order (SIGNED) -----------------------------------//
+Route::get('/query-order/{clientOrderId?}/{orderId?}', [CoinCallController::class, 'getQueryOrder']);
+
+//------------------------------------ Query Open Orders(SIGNED) -----------------------------------//
+Route::get('open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrders']);
+
+//------------------------------------ Query Open Orders(SIGNED) -----------------------------------//
+Route::get('/orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrders']);
 
 
 
