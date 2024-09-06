@@ -48,7 +48,6 @@ class CoinCallController extends Controller
             CURLOPT_SSL_VERIFYHOST => false
         ));
         $response = curl_exec($curl);
-        dd($response, $prehashString, $url);
         curl_close($curl);
 
         return json_decode($response, true);
