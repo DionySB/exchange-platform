@@ -9,8 +9,8 @@ class CoinCallController extends Controller
 {
     private function apiRequest($method, $uri, $params = [])
     {
-        $apiKey = '2xdeJ6WA6sd10mkG/1HveChQVOPqDGjqGYtm9B6GH40=';
-        $secretKey = 'tviMKSr8BibMDgPxTi336cFlc4PpzO2BStFUDUp1dHc=';
+        $apiKey = '3KOy8PA2yMf4CwgzC7kHlyopuxkYRJRnCYzceS3HQAY=';
+        $secretKey = 'DXwvncH2w6cyJP3rJwymQkiG4pPs2WrTb20rNkaVHo4=';
         $timestamp = round(microtime(true) * 1000);
         $tsDiff = 5000;
 
@@ -55,7 +55,6 @@ class CoinCallController extends Controller
         }
 
         $response = curl_exec($curl);
-        dd($response, $url, $prehashString);
         curl_close($curl);
 
         return json_decode($response, true);
