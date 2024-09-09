@@ -35,7 +35,8 @@ Route::post('create-order', [CoinCallController::class, 'createOrder']);
 Route::post('cancel-order', [CoinCallController::class, 'cancelOrder']);
 
 //------------------------------------ Query Order (SIGNED) -----------------------------------//
-Route::get('/query-order/{clientOrderId?}/{orderId?}', [CoinCallController::class, 'getQueryOrder']);
+
+Route::get('/query-order/{id?}', [CoinCallController::class, 'getQueryOrder']);
 
 //------------------------------------ Query Open Orders(SIGNED) -----------------------------------//
 Route::get('open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrders']);
