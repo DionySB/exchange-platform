@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CancelOrderRequest;
+use App\Http\Requests\CreateOptionOrderRequest;
 use App\Http\Requests\CreateOrderRequest;
 
 class CoinCallController extends Controller
 {
     private function apiRequest($method, $uri, $params = [])
     {
-        $apiKey = '/5AeyqmVeF7YKVetwCgLvnifokYmpnM5giu4VcqQLoA=';
-        $secretKey = '7IAXOK9/ofbLSydaL52JR2EKouCSmD81bvWiFbtDOd0=';
+        $apiKey = 'pGkJp4izHvmjNKXFuTSZVaLcPImHBpDSoeLa8Jmeweo=';
+        $secretKey = 'IOdi32FCjGOxenyk0D76dU3PtB0w/oIfstqpizJLdwQ=';
         $timestamp = round(microtime(true) * 1000);
         $tsDiff = 5000;
-
         ksort($params);
 
         $queryString = http_build_query($params);
@@ -25,7 +25,6 @@ class CoinCallController extends Controller
         }
 
         $url = "https://api.coincall.com{$uri}";
-
         $signature = hash_hmac('sha256', $prehashString, $secretKey);
         $signature = strtoupper($signature);
 
@@ -55,6 +54,7 @@ class CoinCallController extends Controller
         }
 
         $response = curl_exec($curl);
+        dd($response, $prehashString, $url, $uri);
         curl_close($curl);
 
         return json_decode($response, true);
@@ -96,7 +96,7 @@ class CoinCallController extends Controller
 
     public function getOptionOrderBook($symbol)
     {
-        $uri = '/open/option/order/orderbook/v1/' . $symbol;
+        $uri = '/open/option/order/orderbook/v1/' .  $symbol;
         $response = $this->apiRequest('GET', $uri);
 
         return $response;
@@ -177,8 +177,11 @@ class CoinCallController extends Controller
 
     public function getOpenOrders($symbol = null)
     {
-        $uri = '/open/spot/trade/orders/v1/' . $symbol;
-        $response = $this->apiRequest('GET', $uri);
+        $params = [
+            'symbol' => $symbol
+        ];
+        $uri = '/open/spot/trade/orders/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
 
         return response()->json($response);
     }
@@ -196,4 +199,103 @@ class CoinCallController extends Controller
 
         return response()->json($response);
     }
+
+    public function getOptionChain($endTime, $index)
+    {
+        $params = [
+            'endTime' => $endTime,
+        ];
+
+        $uri = "/open/option/get/v1/{$index}";
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
+
+    public function getOptionsOrderBook($symbol)
+    {
+        $uri = '/open/option/order/orderbook/v1/' . $symbol;
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    public function getPositions()
+    {
+        $uri = '/open/option/position/get/v1';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    public function createOptionOrder(CreateOptionOrderRequest $request)
+    {
+        $validatedData = $request->validated();
+        $tradeType = $validatedData['tradeType'];
+
+        if (in_array($tradeType, [1])) {
+            if (empty($validatedData['price'])) {
+                return response()->json([
+                    'error' => 'Price required for tradeType 1 LIMIT'
+                ], 400);
+            }
+        };
+
+        $params = array_filter([
+            'clientOrderId' => $validatedData['clientOrderId'] ?? null,
+            'tradeSide' => $validatedData['tradeSide'],
+            'tradeType' => $validatedData['tradeType'],
+            'symbol' => $validatedData['symbol'],
+            'qty' => $validatedData['qty'],
+            'price' => $validatedData['price'] ?? null,
+            'stp' => $validatedData['stp'] ?? null
+
+        ]);
+
+        $uri = '/open/option/order/create/v1';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    public function getOpenOptionOrders($currency = null, $page = 1, $pageSize = 20)
+    {
+        $params = [
+            'page' => $page,
+            'pageSize' => $pageSize,
+            'currency' => $currency
+        ];
+
+        $uri = '/open/option/order/pending/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function getOrderInfo($paramType, $id)
+    {
+        $params = [
+            $paramType => $id
+        ];
+
+        $uri = '/open/option/order/singleQuery/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function getOrderDetails($pageSize = 20, $fromId = null, $startTime = null, $endTime = null)
+    {
+        $params = [
+            'pageSize' => $pageSize,
+            'fromId' => $fromId,
+            'startTime' => $startTime,
+            'endTime' => $endTime
+        ];
+        $uri = '/open/option/order/history/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
 }
+
