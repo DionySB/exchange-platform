@@ -48,7 +48,7 @@ Route::get('open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrders']
 Route::get('orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrders']);
 
 //------------------------------------ Option Chain (SIGNED) -----------------------------------//
-Route::get('option-chain/{endTime?}/{index?}', [CoinCallController::class, 'getOptionChain']);
+Route::get('option-chain/{index}/{endTime}', [CoinCallController::class, 'getOptionChain']);
 
 //------------------------------------ Positions (SIGNED) -----------------------------------//
 Route::get('positions', [CoinCallController::class, 'getPositions']);
@@ -65,7 +65,8 @@ Route::get('/order-info/{type}/{id}', [CoinCallController::class, 'getOrderInfo'
 //------------------------------------ Get Order Details (SIGNED) -----------------------------------//
 Route::get('order-details/{pageSize?}/{fromId?}/{startTime?}/{endTime?}', [CoinCallController::class, 'getOrderDetails']);
 
-
+//------------------------------------ Get Option Instruments -----------------------------------//
+Route::get('option-instruments/{baseCurrency?}', [CoinCallController::class, 'getOptionInstruments']);
 
 
 
