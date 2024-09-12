@@ -15,7 +15,6 @@ class CoinCallController extends Controller
         $timestamp = round(microtime(true) * 1000);
         $tsDiff = 5000;
         ksort($params);
-
         $queryString = http_build_query($params);
         if (!blank($queryString)) {
             $uri .= '?' . $queryString;
@@ -54,7 +53,6 @@ class CoinCallController extends Controller
         }
 
         $response = curl_exec($curl);
-        dd($response, $prehashString, $url, $uri);
         curl_close($curl);
 
         return json_decode($response, true);
@@ -200,7 +198,7 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function getOptionChain($endTime, $index)
+    public function getOptionChain($index, $endTime)
     {
         $params = [
             'endTime' => $endTime,
@@ -294,6 +292,14 @@ class CoinCallController extends Controller
         ];
         $uri = '/open/option/order/history/v1';
         $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
+
+    public function getOptionInstruments($baseCurrency)
+    {
+        $uri = '/open/option/getInstruments/' . $baseCurrency;
+        $response = $this->apiRequest('GET', $uri);
 
         return response()->json($response);
     }
