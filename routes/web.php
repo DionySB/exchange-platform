@@ -25,9 +25,6 @@ Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo
 //------------------------------------ Get OptionOrderBook(SIGNED) -----------------------------------//
 Route::get('option-orderbook/{symbol}', [CoinCallController::class, 'getOptionOrderBook']);
 
-//------------------------------------ Get OptionsOrderBook(SIGNED) -----------------------------------//
-Route::get('options-orderbook/{symbol}', [CoinCallController::class, 'getOptionsOrderBook']);
-
 //------------------------------------ Get Orderbook(SIGNED) 'depth data' -----------------------------------//
 Route::get('orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getSpotMarketOrderBook']);
 
