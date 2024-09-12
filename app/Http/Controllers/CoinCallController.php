@@ -210,14 +210,6 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function getOptionsOrderBook($symbol)
-    {
-        $uri = '/open/option/order/orderbook/v1/' . $symbol;
-        $response = $this->apiRequest('GET', $uri);
-
-        return $response;
-    }
-
     public function getPositions()
     {
         $uri = '/open/option/position/get/v1';
