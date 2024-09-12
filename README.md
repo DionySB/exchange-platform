@@ -1,10 +1,10 @@
 #exhange-platform
 
 Route: /create-order
-[(Method: createOrder)]
+[Method: createOrder]
 
 Route: /cancel-order
-[(Method: cancelOrder)]
+[Method: cancelOrder]
 
 Route: /create-option-order
 [Method: createOptionOrder]
