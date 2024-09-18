@@ -233,25 +233,22 @@ class CoinCallController extends Controller
                 'success' => false,
                 'message' => 'Os campos symbol, tradeSide e tradeType são obrigatórios.'
             ];
-        }
-
-        if (in_array($tradeType, [1])) {
-            if (empty($qty) || empty($price)) {
-                return [
-                    'success' => false,
-                    'message' => 'qty e price são obrigatórios para o tipo de negociação LIMIT.'
-                ];
-            }
-        } elseif ($tradeType == 2) {
-            if (empty($qty)) {
-                return [
-                    'success' => false,
-                    'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
-                ];
-            }
-        }
-
-        if ($stp !== null && !in_array($stp, [1, 2, 3])) {
+        } elseif (!in_array($tradeSide, [1, 2])) {
+            return [
+                'success' => false,
+                'message' => 'tradeSide inválido. Por favor, forneça um valor de 1-buy ou 2-sell.'
+            ];
+        } elseif ($tradeType == 1 && (empty($qty) || empty($price))) {
+            return [
+                'success' => false,
+                'message' => 'qty e price são obrigatórios para o tipo de negociação LIMIT.'
+            ];
+        } elseif ($tradeType == 2 && empty($qty)) {
+            return [
+                'success' => false,
+                'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+            ];
+        } elseif ($stp !== null && !in_array($stp, [1, 2, 3])) {
             return [
                 'success' => false,
                 'message' => 'stp deve ter um dos seguintes valores: 1 (CM - Cancel Maker), 2 (CT - Cancel Taker), ou 3 (CB - Cancel Both).'
@@ -299,22 +296,21 @@ class CoinCallController extends Controller
                 'success' => false,
                 'message' => 'Os campos symbol, tradeSide e tradeType são obrigatórios.'
             ];
-        }
-
-        if (in_array($tradeType, [1, 3])) {
-            if (empty($qty) || empty($price)) {
-                return [
-                    'success' => false,
-                    'message' => 'qty e price são obrigatórios para os tipos de negociação LIMIT e POST_ONLY.'
-                ];
-            }
-        } elseif ($tradeType == 2) {
-            if (empty($qty)) {
-                return [
-                    'success' => false,
-                    'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
-                ];
-            }
+        } elseif (!in_array($tradeSide, [1, 2])) {
+            return [
+                'success' => false,
+                'message' => 'tradeSide inválido. Por favor, forneça um valor de 1 buy ou 2 sell.'
+            ];
+        } elseif (in_array($tradeType, [1, 3]) && (empty($qty) || empty($price))) {
+            return [
+                'success' => false,
+                'message' => 'qty e price são obrigatórios para os tipos de negociação LIMIT e POST_ONLY.'
+            ];
+        } elseif ($tradeType == 2 && empty($qty)) {
+            return [
+                'success' => false,
+                'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+            ];
         }
 
         $params = array_filter([
