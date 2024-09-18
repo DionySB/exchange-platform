@@ -91,6 +91,7 @@ class CoinCallController extends Controller
         return $response;
     }
 
+
     public function getOptionOrderBook($symbol)
     {
         $uri = '/open/option/order/orderbook/v1/' .  $symbol;
@@ -219,148 +220,162 @@ class CoinCallController extends Controller
 
     public function createOptionOrder(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'symbol' => 'required|string',
-            'tradeSide' => 'required|integer|in:1,2',
-            'tradeType' => 'required|integer|in:1,3',
-            'clientOrderId' => 'nullable|numeric',
-            'qty' => 'required|numeric',
-            'price' => 'nullable|numeric',
-            'stp' => 'nullable|in:1,2,3',
-        ], $this->getMessagesCreateOptionOrder());
+        $symbol = $request->input('symbol');
+        $tradeSide = $request->input('tradeSide');
+        $tradeType = $request->input('tradeType');
+        $clientOrderId = $request->input('clientOrderId');
+        $qty = $request->input('qty');
+        $price = $request->input('price');
+        $stp = $request->input('stp');
 
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
+        if (empty($symbol) || empty($tradeSide) || empty($tradeType)) {
+            return [
+                'success' => false,
+                'message' => 'Os campos symbol, tradeSide e tradeType são obrigatórios.'
+            ];
         }
 
-        $validatedData = $validator->validated();
-        $tradeType = $validatedData['tradeType'];
-
         if (in_array($tradeType, [1])) {
-            if (empty($validatedData['price'])) {
-                return response()->json([
-                    'error' => 'price é obrigatório para o tipo de negociação LIMIT'
-                ], 400);
+            if (empty($qty) || empty($price)) {
+                return [
+                    'success' => false,
+                    'message' => 'qty e price são obrigatórios para o tipo de negociação LIMIT.'
+                ];
             }
-        };
+        } elseif ($tradeType == 2) {
+            if (empty($qty)) {
+                return [
+                    'success' => false,
+                    'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+                ];
+            }
+        }
+
+        if ($stp !== null && !in_array($stp, [1, 2, 3])) {
+            return [
+                'success' => false,
+                'message' => 'stp deve ter um dos seguintes valores: 1 (CM - Cancel Maker), 2 (CT - Cancel Taker), ou 3 (CB - Cancel Both).'
+            ];
+        }
 
         $params = array_filter([
-            'clientOrderId' => $validatedData['clientOrderId'] ?? null,
-            'tradeSide' => $validatedData['tradeSide'],
-            'tradeType' => $validatedData['tradeType'],
-            'symbol' => $validatedData['symbol'],
-            'qty' => $validatedData['qty'],
-            'price' => $validatedData['price'] ?? null,
-            'stp' => $validatedData['stp'] ?? null
-
+            'symbol' => $symbol,
+            'clientOrderId' => $clientOrderId ?? null,
+            'tradeSide' => $tradeSide,
+            'tradeType' => $tradeType,
+            'qty' => $qty ?? null,
+            'price' => $price ?? null,
+            'stp' => $stp ?? null
         ]);
 
         $uri = '/open/option/order/create/v1';
         $response = $this->apiRequest('POST', $uri, $params);
 
-        return $response;
+        if (!empty($response['success']) && !empty($response['orderId'])) {
+            return [
+                'success' => true,
+                'message' => 'Ordem criada com sucesso.'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'code' => $response['code'],
+            'message' => $response['msg'],
+        ];
     }
 
     public function createOrder(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'symbol' => 'required|string',
-            'tradeSide' => 'required|integer|in:1,2',
-            'tradeType' => 'required|integer|in:1,2,3',
-            'clientOrderId' => 'nullable|numeric',
-            'qty' => 'nullable|numeric',
-            'price' => 'nullable|numeric',
-        ], $this->getMessagesCreateOrder());
+        $symbol = $request->input('symbol');
+        $tradeSide = $request->input('tradeSide');
+        $tradeType = $request->input('tradeType');
+        $clientOrderId = $request->input('clientOrderId');
+        $qty = $request->input('qty');
+        $price = $request->input('price');
 
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
+        if (empty($symbol) || empty($tradeSide) || empty($tradeType)) {
+            return [
+                'success' => false,
+                'message' => 'Os campos symbol, tradeSide e tradeType são obrigatórios.'
+            ];
         }
 
-        $validatedData = $validator->validated();
-        $tradeType = $validatedData['tradeType'];
-
         if (in_array($tradeType, [1, 3])) {
-            if (empty($validatedData['qty']) || empty($validatedData['price'])) {
-                return response()->json([
-                    'error' => 'qty e price são obrigatórios para os tipos de negociação LIMIT e POST_ONLY.'
-                ], 400);
+            if (empty($qty) || empty($price)) {
+                return [
+                    'success' => false,
+                    'message' => 'qty e price são obrigatórios para os tipos de negociação LIMIT e POST_ONLY.'
+                ];
             }
         } elseif ($tradeType == 2) {
-            if (empty($validatedData['qty'])) {
-                return response()->json([
-                    'error' => 'qty é obrigatório para o tipo de negociação MARKET.'
-                ], 400);
+            if (empty($qty)) {
+                return [
+                    'success' => false,
+                    'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+                ];
             }
         }
 
         $params = array_filter([
-            'symbol' => $validatedData['symbol'],
-            'clientOrderId' => $validatedData['clientOrderId'] ?? null,
-            'tradeSide' => $validatedData['tradeSide'],
-            'tradeType' => $validatedData['tradeType'],
-            'qty' => $validatedData['qty'] ?? null,
-            'price' => $validatedData['price'] ?? null,
+            'symbol' => $symbol,
+            'clientOrderId' => $clientOrderId ?? null,
+            'tradeSide' => $tradeSide,
+            'tradeType' => $tradeType,
+            'qty' => $qty ?? null,
+            'price' => $price ?? null,
         ]);
 
         $uri = '/open/spot/trade/order/v1';
         $response = $this->apiRequest('POST', $uri, $params);
 
-        return response()->json($response);
+        if (!empty($response['success']) && !empty($response['orderId'])) {
+            return [
+                'success' => true,
+                'message' => 'Ordem criada com sucesso.'
+            ];
+        }
+
+        return [
+            'success' => false,
+            'code' => $response['code'],
+            'message' => $response['msg'],
+        ];
     }
 
     public function cancelOrder(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'clientOrderId' => 'nullable|string|required_without:orderId',
-            'orderId' => 'nullable|string|required_without:clientOrderId',
-        ], $this->getMessagesCancelOrder());
+        $clientOrderId = $request->input('clientOrderId');
+        $orderId = $request->input('orderId');
 
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $validatedData = $validator->validated();
-
-        $params = array_filter([
-            'clientOrderId' => $validatedData['clientOrderId'] ?? null,
-            'orderId' => $validatedData['orderId'] ?? null,
-        ]);
+        if (!empty($clientOrderId) || !empty($orderId)) {
+            $params = [
+                'clientOrderId' => $clientOrderId ?? null,
+                'orderId' => $orderId ?? null,
+            ];
 
         $uri = '/open/option/order/cancel/v1';
         $response = $this->apiRequest('POST', $uri, $params);
 
-        return response()->json($response);
-    }
 
-    protected function getMessagesCancelOrder()
-    {
+        if (isset($response['code']) && $response['code'] === 0) {
+            return [
+                'success' => true,
+                'message' => 'Ordem cancelada com sucesso.'
+            ];
+        }
+
         return [
-            'clientOrderId.required_without' => 'O campo clientOrderId é obrigatório quando orderId não está presente.',
-            'orderId.required_without' => 'O campo orderId é obrigatório quando clientOrderId não está presente.',
+            'success' => false,
+            'code' => $response['code'],
+            'message' => $response['msg'],
         ];
     }
 
-    protected function getMessagesCreateOptionOrder()
-    {
-        return [
-            'tradeSide.in' => 'O campo tradeSide deve ter um dos seguintes valores: 1 ou 2.',
-            'tradeType.in' => 'O campo tradeType deve ter um dos seguintes valores: 1 ou 3.',
-            'stp.in' => 'O campo stp deve ter um dos seguintes valores: 1 (CM - Cancel Maker), 2 (CT - Cancel Taker), ou 3 (CB - Cancel Both).',
-        ];
-    }
-
-    protected function getMessagesCreateOrder()
-    {
-        return [
-            'tradeSide.in' => 'O campo tradeSide deve ter um dos seguintes valores: 1 ou 2.',
-            'tradeType.in' => 'O campo tradeType deve ter um dos seguintes valores: 1 ou 3.',
-        ];
+    return [
+        'success' => false,
+        'message' => 'Você deve fornecer ou clientOrderId ou orderId.'
+    ];
     }
 }
 
