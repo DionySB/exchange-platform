@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-
 class CoinCallController extends Controller
 {
     private function apiRequest($method, $uri, $params = [])
@@ -218,15 +215,27 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function createOptionOrder(Request $request)
-    {
-        $symbol = $request->input('symbol');
-        $tradeSide = $request->input('tradeSide');
-        $tradeType = $request->input('tradeType');
-        $clientOrderId = $request->input('clientOrderId');
-        $qty = $request->input('qty');
-        $price = $request->input('price');
-        $stp = $request->input('stp');
+    public function createOptionOrder(array $dados) {
+
+        /*
+            $dados = [
+                'symbol' => 'BTCUSD',           String obrigatória
+                'tradeSide' => 1,               Inteiro obrigatório (1 para buy, 2 para sell)
+                'tradeType' => 1,               Inteiro obrigatório (1 para LIMIT, 2 para MARKET)
+                'clientOrderId' => '12345',     String opcional
+                'qty' => 10,                    Float obrigatório para LIMIT e MARKET
+                'price' => 50000,               Float obrigatório para LIMIT
+                'stp' => 1                      Inteiro opcional (1 para CM, 2 para CT, 3 para CB)
+            ];
+        */
+
+        $symbol = $dados['symbol'];
+        $tradeSide = $dados['tradeSide'];
+        $tradeType = $dados['tradeType'];
+        $clientOrderId = $dados['clientOrderId'] ?? null;
+        $qty = $dados['qty'] ?? null;
+        $price = $dados['price'] ?? null;
+        $stp = $dados['stp'] ?? null;
 
         if (empty($symbol) || empty($tradeSide) || empty($tradeType)) {
             return [
@@ -236,22 +245,22 @@ class CoinCallController extends Controller
         } elseif (!in_array($tradeSide, [1, 2])) {
             return [
                 'success' => false,
-                'message' => 'tradeSide inválido. Por favor, forneça um valor de 1-buy ou 2-sell.'
+                'message' => 'tradeSide inválido. Deve ser 1 (buy) ou 2 (sell).'
             ];
         } elseif ($tradeType == 1 && (empty($qty) || empty($price))) {
             return [
                 'success' => false,
-                'message' => 'qty e price são obrigatórios para o tipo de negociação LIMIT.'
+                'message' => 'qty e price são obrigatórios para o tipo LIMIT.'
             ];
         } elseif ($tradeType == 2 && empty($qty)) {
             return [
                 'success' => false,
-                'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+                'message' => 'qty é obrigatório para o tipo MARKET.'
             ];
         } elseif ($stp !== null && !in_array($stp, [1, 2, 3])) {
             return [
                 'success' => false,
-                'message' => 'stp deve ter um dos seguintes valores: 1 (CM - Cancel Maker), 2 (CT - Cancel Taker), ou 3 (CB - Cancel Both).'
+                'message' => 'stp deve ser 1 (CM), 2 (CT), ou 3 (CB).'
             ];
         }
 
@@ -282,14 +291,24 @@ class CoinCallController extends Controller
         ];
     }
 
-    public function createOrder(Request $request)
-    {
-        $symbol = $request->input('symbol');
-        $tradeSide = $request->input('tradeSide');
-        $tradeType = $request->input('tradeType');
-        $clientOrderId = $request->input('clientOrderId');
-        $qty = $request->input('qty');
-        $price = $request->input('price');
+    public function createOrder(array $dados) {
+        /*
+            $dados = [
+                'symbol' => 'BTCUSD',           // String obrigatória
+                'tradeSide' => 1,               // Inteiro obrigatório (1 para BUY, 2 para SELL)
+                'tradeType' => 1,               // Inteiro obrigatório (1 para LIMIT, 2 para MARKET, 3 para POST_ONLY)
+                'clientOrderId' => '12345',     // String opcional
+                'qty' => 10.0,                  // Float obrigatório para LIMIT, MARKET e POST_ONLY
+                'price' => 50000.0,             // Float obrigatório para LIMIT e POST_ONLY (opcional para MARKET)
+            ];
+        */
+
+        $symbol = $dados['symbol'] ?? null;
+        $tradeSide = $dados['tradeSide'] ?? null;
+        $tradeType = $dados['tradeType'] ?? null;
+        $clientOrderId = $dados['clientOrderId'] ?? null;
+        $qty = $dados['qty'] ?? null;
+        $price = $dados['price'] ?? null;
 
         if (empty($symbol) || empty($tradeSide) || empty($tradeType)) {
             return [
@@ -299,17 +318,17 @@ class CoinCallController extends Controller
         } elseif (!in_array($tradeSide, [1, 2])) {
             return [
                 'success' => false,
-                'message' => 'tradeSide inválido. Por favor, forneça um valor de 1 buy ou 2 sell.'
+                'message' => 'tradeSide inválido. Deve ser 1 (buy) ou 2 (sell).'
             ];
         } elseif (in_array($tradeType, [1, 3]) && (empty($qty) || empty($price))) {
             return [
                 'success' => false,
-                'message' => 'qty e price são obrigatórios para os tipos de negociação LIMIT e POST_ONLY.'
+                'message' => 'qty e price são obrigatórios para o tipo LIMIT e POST_ONLY.'
             ];
         } elseif ($tradeType == 2 && empty($qty)) {
             return [
                 'success' => false,
-                'message' => 'qty é obrigatório para o tipo de negociação MARKET.'
+                'message' => 'qty é obrigatório para o tipo  MARKET.'
             ];
         }
 
@@ -339,10 +358,16 @@ class CoinCallController extends Controller
         ];
     }
 
-    public function cancelOrder(Request $request)
-    {
-        $clientOrderId = $request->input('clientOrderId');
-        $orderId = $request->input('orderId');
+    public function cancelOrder(array $dados) {
+        /*
+            $dados = [
+                'orderId' => 1663820914095300608,  // opcional, mas um dos dois (orderId ou clientOrderId) deve ser passado
+                'clientOrderId' => 123123123,      // opcional
+            ];
+        */
+
+        $clientOrderId = $dados['clientOrderId'] ?? null;
+        $orderId = $dados['orderId'] ?? null;
 
         if (!empty($clientOrderId) || !empty($orderId)) {
             $params = [
