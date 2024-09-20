@@ -21,7 +21,6 @@ Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo
 
 /* futures */
 Route::prefix('futures')->group(function () {
-    Route::get('/test', [CoinCallController::class, 'testFuture']);
     Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookFuture']);
     Route::get('/leverage/{symbol}', [CoinCallController::class, 'getLeverageFuture']);
     Route::get('/leverage/leverage/{symbol}', [CoinCallController::class, 'setLeverageFuture']); //($dados)
@@ -32,7 +31,6 @@ Route::prefix('futures')->group(function () {
 
 /* options prefix */
 Route::prefix('options')->group(function () {
-    Route::get('/test', [CoinCallController::class, 'testOption']);
     Route::get('/orderbook/{symbol}', [CoinCallController::class, 'getOrderBookOption']);
     Route::get('/option-chain/{index}/{endTime}', [CoinCallController::class, 'getChainOption']);
     Route::get('/positions', [CoinCallController::class, 'getPositionsOption']);
@@ -40,19 +38,18 @@ Route::prefix('options')->group(function () {
     Route::get('/order-info/{type}/{id}', [CoinCallController::class, 'getOrderInfoOption']);
     Route::get('/order-details/{pageSize?}/{fromId?}/{startTime?}/{endTime?}', [CoinCallController::class, 'getOrderDetailsOption']);
     Route::get('/instruments/{baseCurrency?}', [CoinCallController::class, 'getInstrumentsOption']);
-    //Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderOption']); //($dados)
-    //Route::post('/create-order', [CoinCallController::class, 'createOrderOption']); //($dados)
+    Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderOption']); //($dados)
+    Route::post('/create-order', [CoinCallController::class, 'createOrderOption']); //($dados)
 });
 
 /* spots prefix */
 Route::prefix('spots')->group(function () {
-    Route::get('/test', [CoinCallController::class, 'testSpot']);
     Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookSpot']);
     Route::get('/query-order/{type}/{id}', [CoinCallController::class, 'getQueryOrderSpot']);
     Route::get('/open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrdersSpot']);
     Route::get('/orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrdersSpot']);
-    //Route::post('/create-order', [CoinCallController::class, 'createOrderSpot']); //($dados)
-    //Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderSpot']); //($dados)
+    Route::post('/create-order', [CoinCallController::class, 'createOrderSpot']); //($dados)
+    Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderSpot']); //($dados)
 });
 
 
