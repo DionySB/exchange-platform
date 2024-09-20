@@ -14,56 +14,46 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
 Route::get('/', [RouteController::class, 'index']);
-
-//------------------------------------ Get User Info(SIGNED) -----------------------------------//
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
-
-//------------------------------------ Get Account Summary(SIGNED) -----------------------------------//
 Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
 
-//------------------------------------ Get OptionOrderBook(SIGNED) -----------------------------------//
-Route::get('option-orderbook/{symbol}', [CoinCallController::class, 'getOptionOrderBook']);
+/* futures */
+Route::prefix('futures')->group(function () {
+    Route::get('/test', [CoinCallController::class, 'testFuture']);
+    Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookFuture']);
+    Route::get('/leverage/{symbol}', [CoinCallController::class, 'getLeverageFuture']);
+    Route::get('/leverage/leverage/{symbol}', [CoinCallController::class, 'setLeverageFuture']); //($dados)
+    Route::get('/positions', [CoinCallController::class, 'getPositionsFuture']);
+    Route::get('/open-orders/{symbol}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersFuture']);
+    Route::get('cancel-order/{symbol}/{version?}', [CoinCallController::class, 'cancelOrderFuture']);
+});
 
-//------------------------------------ Get Orderbook(SIGNED) 'depth data' -----------------------------------//
-Route::get('orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getSpotMarketOrderBook']);
+/* options prefix */
+Route::prefix('options')->group(function () {
+    Route::get('/test', [CoinCallController::class, 'testOption']);
+    Route::get('/orderbook/{symbol}', [CoinCallController::class, 'getOrderBookOption']);
+    Route::get('/option-chain/{index}/{endTime}', [CoinCallController::class, 'getChainOption']);
+    Route::get('/positions', [CoinCallController::class, 'getPositionsOption']);
+    Route::get('/open-orders/{currency?}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersOption']);
+    Route::get('/order-info/{type}/{id}', [CoinCallController::class, 'getOrderInfoOption']);
+    Route::get('/order-details/{pageSize?}/{fromId?}/{startTime?}/{endTime?}', [CoinCallController::class, 'getOrderDetailsOption']);
+    Route::get('/instruments/{baseCurrency?}', [CoinCallController::class, 'getInstrumentsOption']);
+    //Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderOption']); //($dados)
+    //Route::post('/create-order', [CoinCallController::class, 'createOrderOption']); //($dados)
+});
 
-//------------------------------------ Place Order(SIGNED) -----------------------------------//
-Route::post('create-order', [CoinCallController::class, 'createOrder']);
-
-//------------------------------------ Cancel Order(SIGNED) -----------------------------------//
-Route::post('cancel-order', [CoinCallController::class, 'cancelOrder']);
-
-//------------------------------------ Query Order (SIGNED) -----------------------------------//
-
-Route::get('query-order/{id?}', [CoinCallController::class, 'getQueryOrder']);
-
-//------------------------------------ Query Open Orders (SIGNED) -----------------------------------//
-Route::get('open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrders']);
-
-//------------------------------------ Query Open Orders (SIGNED) -----------------------------------//
-Route::get('orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrders']);
-
-//------------------------------------ Option Chain (SIGNED) -----------------------------------//
-Route::get('option-chain/{index}/{endTime}', [CoinCallController::class, 'getOptionChain']);
-
-//------------------------------------ Positions (SIGNED) -----------------------------------//
-Route::get('positions', [CoinCallController::class, 'getPositions']);
-
-//----------------------------------- Place Order(SIGNED)(Place an option order) -----------------------------------//
-Route::post('create-option-order', [CoinCallController::class, 'createOptionOrder']);
-
-//------------------------------------ Get Open Orders (SIGNED) -----------------------------------//
-Route::get('open-option-orders/{currency?}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOptionOrders']);
-
-//------------------------------------ Get Order Info (SIGNED) -----------------------------------//
-Route::get('/order-info/{type}/{id}', [CoinCallController::class, 'getOrderInfo']);
-
-//------------------------------------ Get Order Details (SIGNED) -----------------------------------//
-Route::get('order-details/{pageSize?}/{fromId?}/{startTime?}/{endTime?}', [CoinCallController::class, 'getOrderDetails']);
-
-//------------------------------------ Get Option Instruments -----------------------------------//
-Route::get('option-instruments/{baseCurrency?}', [CoinCallController::class, 'getOptionInstruments']);
+/* spots prefix */
+Route::prefix('spots')->group(function () {
+    Route::get('/test', [CoinCallController::class, 'testSpot']);
+    Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookSpot']);
+    Route::get('/query-order/{type}/{id}', [CoinCallController::class, 'getQueryOrderSpot']);
+    Route::get('/open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrdersSpot']);
+    Route::get('/orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrdersSpot']);
+    //Route::post('/create-order', [CoinCallController::class, 'createOrderSpot']); //($dados)
+    //Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderSpot']); //($dados)
+});
 
 
 
