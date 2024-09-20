@@ -54,6 +54,8 @@ class CoinCallController extends Controller
         return json_decode($response, true);
     }
 
+    /* User Account Related Functions */
+
     public function getAccountInfo()
     {
         $uri = '/open/user/info/v1';
@@ -88,8 +90,9 @@ class CoinCallController extends Controller
         return $response;
     }
 
+    /* Options Functions */
 
-    public function getOptionOrderBook($symbol)
+    public function getOrderBookOption($symbol)
     {
         $uri = '/open/option/order/orderbook/v1/' .  $symbol;
         $response = $this->apiRequest('GET', $uri);
@@ -97,57 +100,7 @@ class CoinCallController extends Controller
         return $response;
     }
 
-    public function getSpotMarketOrderBook($symbol, $depth = 1)
-    {
-        $params = [
-            'depth' => $depth,
-            'symbol' => $symbol,
-        ];
-        $uri = '/open/spot/market/orderbook';
-        $response = $this->apiRequest('GET', $uri, $params);
-
-        return $response;
-    }
-
-    public function getQueryOrder($id = null)
-    {
-        if (is_numeric($id)) {
-            $params['orderId'] = $id;
-        } else {
-            $params['clientOrderId'] = $id;
-        }
-        $uri = '/open/spot/trade/order/v1';
-        $response = $this->apiRequest('GET', $uri, $params);
-
-        return response()->json($response);
-    }
-
-    public function getOpenOrders($symbol = null)
-    {
-        $params = [
-            'symbol' => $symbol
-        ];
-        $uri = '/open/spot/trade/orders/v1';
-        $response = $this->apiRequest('GET', $uri, $params);
-
-        return response()->json($response);
-    }
-
-    public function getAllOrders($symbol = null, $startTime = null, $endTime = null, $limit = 500)
-    {
-        $params = [
-            'symbol' => $symbol,
-            'startTime' => $startTime,
-            'endTime' => $endTime,
-            'limit' => $limit
-        ];
-        $uri = '/open/spot/trade/allorders/v1';
-        $response = $this->apiRequest('GET', $uri, $params);
-
-        return response()->json($response);
-    }
-
-    public function getOptionChain($index, $endTime)
+    public function getChainOption($index, $endTime)
     {
         $params = [
             'endTime' => $endTime,
@@ -159,7 +112,7 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function getPositions()
+    public function getPositionsOption()
     {
         $uri = '/open/option/position/get/v1';
         $response = $this->apiRequest('GET', $uri);
@@ -167,7 +120,7 @@ class CoinCallController extends Controller
         return $response;
     }
 
-    public function getOpenOptionOrders($currency = null, $page = 1, $pageSize = 20)
+    public function getOpenOrdersOption($currency = null, $page = 1, $pageSize = 20)
     {
         $params = [
             'page' => $page,
@@ -181,7 +134,7 @@ class CoinCallController extends Controller
         return $response;
     }
 
-    public function getOrderInfo($paramType, $id)
+    public function getOrderInfoOption($paramType, $id)
     {
         $params = [
             $paramType => $id
@@ -193,7 +146,7 @@ class CoinCallController extends Controller
         return $response;
     }
 
-    public function getOrderDetails($pageSize = 20, $fromId = null, $startTime = null, $endTime = null)
+    public function getOrderDetailsOption($pageSize = 20, $fromId = null, $startTime = null, $endTime = null)
     {
         $params = [
             'pageSize' => $pageSize,
@@ -207,7 +160,50 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function getOptionInstruments($baseCurrency)
+    public function cancelOrderOption(array $dados) {
+        /*
+            $dados = [
+                'orderId' => 1663820914095300608,  // opcional, mas um dos dois (orderId ou clientOrderId) deve ser passado
+                'clientOrderId' => 123123123,      // opcional
+            ];
+        */
+
+        $clientOrderId = $dados['clientOrderId'] ?? null;
+        $orderId = $dados['orderId'] ?? null;
+
+        if (!empty($clientOrderId) || !empty($orderId)) {
+            $params = [
+                'clientOrderId' => $clientOrderId ?? null,
+                'orderId' => $orderId ?? null,
+            ];
+
+        $uri = '/open/option/order/cancel/v1';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+
+        if (isset($response['code']) && $response['code'] === 0) {
+            return [
+                'success' => true,
+                'message' => 'Ordem cancelada com sucesso.',
+                'data' => $response
+            ];
+        }
+
+        return [
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao de cancelamento',
+            'data' => $response
+        ];
+    }
+
+    return [
+        'success' => false,
+        'message' => 'Você deve fornecer ou clientOrderId ou orderId.'
+    ];
+    }
+
+
+    public function getInstrumentsOption($baseCurrency)
     {
         $uri = '/open/option/getInstruments/' . $baseCurrency;
         $response = $this->apiRequest('GET', $uri);
@@ -215,47 +211,47 @@ class CoinCallController extends Controller
         return response()->json($response);
     }
 
-    public function createOptionOrder(array $dados) {
+    public function createOrderOption(array $dados) {
 
         /*
             $dados = [
-                'symbol' => 'BTCUSD',           String obrigatória
-                'tradeSide' => 1,               Inteiro obrigatório (1 para buy, 2 para sell)
-                'tradeType' => 1,               Inteiro obrigatório (1 para LIMIT, 2 para MARKET)
-                'clientOrderId' => '12345',     String opcional
-                'qty' => 10,                    Float obrigatório para LIMIT e MARKET
-                'price' => 50000,               Float obrigatório para LIMIT
-                'stp' => 1                      Inteiro opcional (1 para CM, 2 para CT, 3 para CB)
+                'symbol' => 'BTCUSD-26OCT22-15000-C',           String obrigatória (Option name)
+                'tradeSide' => 1,                               Inteiro obrigatório (1 para buy, 2 para sell)
+                'tradeType' => 1,                               Inteiro obrigatório (1 para LIMIT, 3 para POST_ONLY)
+                'clientOrderId' => '12345',                     String opcional
+                'qty' => 10,                                    Float obrigatório
+                'price' => 50000,                               Float obrigatório para LIMIT
+                'stp' => 1                                      Inteiro opcional (1 para CM, 2 para CT, 3 para CB)
             ];
         */
 
-        $symbol = $dados['symbol'];
-        $tradeSide = $dados['tradeSide'];
-        $tradeType = $dados['tradeType'];
+        $symbol = $dados['symbol'] ?? null;
+        $tradeSide = $dados['tradeSide'] ?? null;
+        $tradeType = $dados['tradeType'] ?? null;
         $clientOrderId = $dados['clientOrderId'] ?? null;
         $qty = $dados['qty'] ?? null;
         $price = $dados['price'] ?? null;
         $stp = $dados['stp'] ?? null;
 
-        if (empty($symbol) || empty($tradeSide) || empty($tradeType)) {
+        if (empty($symbol) || empty($tradeSide) || empty($tradeType) || empty($qty)) {
             return [
                 'success' => false,
-                'message' => 'Os campos symbol, tradeSide e tradeType são obrigatórios.'
+                'message' => 'Os campos symbol, tradeSide, tradeType e qty são obrigatórios.'
             ];
         } elseif (!in_array($tradeSide, [1, 2])) {
             return [
                 'success' => false,
                 'message' => 'tradeSide inválido. Deve ser 1 (buy) ou 2 (sell).'
             ];
-        } elseif ($tradeType == 1 && (empty($qty) || empty($price))) {
+        } elseif (!in_array($tradeType, [1,3])) {
             return [
                 'success' => false,
-                'message' => 'qty e price são obrigatórios para o tipo LIMIT.'
+                'message' => 'tradeType inválido 1 LIMIT 3 POST_ONLY'
             ];
-        } elseif ($tradeType == 2 && empty($qty)) {
+        } elseif ($tradeType == 1 && empty($price)) {
             return [
                 'success' => false,
-                'message' => 'qty é obrigatório para o tipo MARKET.'
+                'message' => 'price é obrigatório para LIMIT order.'
             ];
         } elseif ($stp !== null && !in_array($stp, [1, 2, 3])) {
             return [
@@ -280,21 +276,72 @@ class CoinCallController extends Controller
         if (!empty($response['success']) && !empty($response['orderId'])) {
             return [
                 'success' => true,
-                'message' => 'Ordem criada com sucesso.'
+                'message' => 'Ordem criada com sucesso.',
+                'data' => $response
             ];
         }
 
         return [
-            'success' => false,
-            'code' => $response['code'],
-            'message' => $response['msg'],
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao',
+            'data' => $response
         ];
     }
 
-    public function createOrder(array $dados) {
+    /* Spots Functions */
+
+    public function getOrderBookSpot($symbol, $depth = 1)
+    {
+        $params = [
+            'depth' => $depth,
+            'symbol' => $symbol,
+        ];
+        $uri = '/open/spot/market/orderbook';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function getQueryOrderSpot($paramType, $id)
+    {
+        $params = [
+            $paramType => $id
+        ];
+        $uri = '/open/spot/trade/order/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
+
+    public function getOpenOrdersSpot($symbol = null)
+    {
+        $params = [
+            'symbol' => $symbol
+        ];
+        $uri = '/open/spot/trade/orders/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
+
+    public function getAllOrdersSpot($symbol = null, $startTime = null, $endTime = null, $limit = 500)
+    {
+        $params = [
+            'symbol' => $symbol,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'limit' => $limit
+        ];
+        $uri = '/open/spot/trade/allorders/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return response()->json($response);
+    }
+
+    public function createOrderSpot(array $dados) {
         /*
             $dados = [
-                'symbol' => 'BTCUSD',           // String obrigatória
+                'symbol' => 'BTCUSDT',           // String obrigatória
                 'tradeSide' => 1,               // Inteiro obrigatório (1 para BUY, 2 para SELL)
                 'tradeType' => 1,               // Inteiro obrigatório (1 para LIMIT, 2 para MARKET, 3 para POST_ONLY)
                 'clientOrderId' => '12345',     // String opcional
@@ -347,18 +394,19 @@ class CoinCallController extends Controller
         if (!empty($response['success']) && !empty($response['orderId'])) {
             return [
                 'success' => true,
-                'message' => 'Ordem criada com sucesso.'
+                'message' => 'Ordem criada com sucesso.',
+                'data' => $response
             ];
         }
 
         return [
-            'success' => false,
-            'code' => $response['code'],
-            'message' => $response['msg'],
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao',
+            'data' => $response
         ];
     }
 
-    public function cancelOrder(array $dados) {
+    public function cancelOrderSpot(array $dados) {
         /*
             $dados = [
                 'orderId' => 1663820914095300608,  // opcional, mas um dos dois (orderId ou clientOrderId) deve ser passado
@@ -375,21 +423,22 @@ class CoinCallController extends Controller
                 'orderId' => $orderId ?? null,
             ];
 
-        $uri = '/open/option/order/cancel/v1';
+        $uri = '/open/spot/trade/cancel/v1';
         $response = $this->apiRequest('POST', $uri, $params);
 
 
         if (isset($response['code']) && $response['code'] === 0) {
             return [
                 'success' => true,
-                'message' => 'Ordem cancelada com sucesso.'
+                'message' => 'Ordem cancelada com sucesso.',
+                'data' => $response
             ];
         }
 
         return [
-            'success' => false,
-            'code' => $response['code'],
-            'message' => $response['msg'],
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao',
+            'data' => $response
         ];
     }
 
@@ -397,6 +446,183 @@ class CoinCallController extends Controller
         'success' => false,
         'message' => 'Você deve fornecer ou clientOrderId ou orderId.'
     ];
+    }
+
+    /* Futures Functions */
+
+    public function getOrderBookFuture($symbol, $depth = 1)
+    {
+        $params = [
+            'depth' => $depth,
+            'symbol' => $symbol
+        ];
+
+        $uri = '/open/futures/market/orderbook';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function getLeverageFuture($symbol)
+    {
+        $params = [
+            'symbol' => $symbol
+        ];
+
+        $uri = '/open/futures/leverage/current/v1';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function setLeverageFuture(array $dados)
+    {
+        /*
+            $dados = [
+                'symbol' => 'BTCUSD',           // String obrigatória
+                'leverage' => 10,               // Inteiro obrigatório
+            ];
+        */
+
+        $symbol = $dados['symbol'] ?? null;
+        $leverage = $dados['leverage'] ?? null;
+
+        if(empty($symbol) || empty($leverage)){
+            return [
+                'success' => true,
+                'message' => 'symbol e leverage são obrigatórios.'
+            ];
+        }
+
+        $params = [
+            'symbol' => $symbol,
+            'leverage' => $leverage,
+        ];
+        $uri = '/open/futures/leverage/set/v1';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        if($response['code'] === 0) {
+            return [
+                'success' => true,
+                'message' => 'Solicitacao enviada.',
+                'data' => $response
+            ];
+        };
+
+        return [
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao',
+            'data' => $response
+        ];
+
+    }
+
+    public function getPositionsFuture()
+    {
+        $uri = '/open/futures/position/get/v1';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    public function createOrderFuture(array $dados)
+    {
+
+        /*
+            $dados = [
+                'symbol' => 'BTCUSD', // String obrigatória
+                'qty' => 0.5, // Float obrigatório, quantidade
+                'tradeSide' => 1, // Inteiro obrigatório, (1: BUY, 2: SELL)
+                'tradeType' => 1, // Inteiro obrigatório, tipo de ordem (1: LIMIT, 2: MARKET, 3: POST_ONLY)
+                'price' => 19000.01, // Float obrigatório para tipo LIMIT
+                'clientOrderId' => '123123123', // String opcional
+                'timeInForce' => 'IOC', // String opcional (GTC, IOC, FOK) default GTC
+                'reduceOnly' => 1, // INTEIRO (1: true, 0: false)
+            ];
+        */
+        $clientOrderId = $dados['clientOrderId'] ?? null;
+        $symbol = $dados['symbol'] ?? null;
+        $price = $dados['price'] ?? null;
+        $qty = $dados['qty'] ?? null;
+        $tradeSide = $dados['tradeSide'] ?? null;
+        $tradeType = $dados['tradeType'] ?? null;
+        $timeInForce = $dados['timeInForce'] ?? 'GTC';
+        $reduceOnly = $dados['reduceOnly'] ?? 0;
+
+        if (empty($symbol) || empty($tradeSide) || empty($tradeType) || empty($qty)) {
+            return [
+                'success' => false,
+                'message' => 'Os campos symbol, qty, tradeSide e tradeType são obrigatórios.'
+            ];
+        } elseif (!in_array($tradeSide, [1, 2])) {
+            return [
+                'success' => false,
+                'message' => 'tradeSide inválido. Deve ser 1 (buy) ou 2 (sell).'
+            ];
+        } elseif (!in_array($tradeType, [1, 2, 3])) {
+            return [
+                'success' => false,
+                'message' => 'tradeType pode ser do tipo 1 (LIMIT), 2 (MARKET) e  3 (POST_ONLY).'
+            ];
+        } elseif ($tradeType == 1 && empty($price)) {
+            return [
+                'success' => false,
+                'message' => 'price é obrigatório para o tipo  1 (LIMIT).'
+            ];
+        } elseif (!in_array($timeInForce, ['GTC', 'IOC', 'FOK'])) {
+            return [
+                'sucess' => false,
+                'message' => 'Time in Force pode ser IOC, FOK. default: GTC'
+            ];
+        }
+        $params = array_filter([
+            'clientOrderId' => $clientOrderId ?? null,
+            'symbol' => $symbol,
+            'tradeSide' => $tradeSide,
+            'tradeType' => $tradeType,
+            'qty' => $qty,
+            'price' => $price ?? null,
+            'timeInForce' => $timeInForce ?? null,
+            'reduceOnly' => $reduceOnly ?? null,
+        ]);
+
+        $uri = '/open/futures/order/create/v1';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        if($response['code'] === 0 && !empty($response['orderId'])){
+            return [
+                'sucess' => true,
+                'message' => 'Solicitacao enviada',
+                'data' => $response
+            ];
+        };
+
+        return [
+            'sucess' => false,
+            'message' => 'Erro ao enviar solicitacao',
+            'data' => $response
+        ];
+    }
+
+    public function getOpenOrdersFuture($symbol, $page = 1, $pageSize = 20)
+    {
+        $uri = ('/open/futures/order/pending/v1');
+        $params = [
+            'symbol' => $symbol,
+            'page' => $page,
+            'pageSize' => $pageSize
+        ];
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    public function cancelOrderFuture($version, $symbol)
+    {
+        $uri = "/open/futures/order/cancelOpenOrders/{$version}/{$symbol}";
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
     }
 }
 
