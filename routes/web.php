@@ -23,7 +23,6 @@ Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo
 Route::prefix('futures')->group(function () {
     Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookFuture']);
     Route::get('/leverage/{symbol}', [CoinCallController::class, 'getLeverageFuture']);
-    Route::get('/leverage/leverage/{symbol}', [CoinCallController::class, 'setLeverageFuture']); //($dados)
     Route::get('/positions', [CoinCallController::class, 'getPositionsFuture']);
     Route::get('/open-orders/{symbol}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersFuture']);
     Route::get('cancel-order/{symbol}/{version?}', [CoinCallController::class, 'cancelOrderFuture']);
