@@ -49,7 +49,6 @@ class CoinCallController extends Controller
         }
 
         $response = curl_exec($curl);
-        dd($response, $prehashString);
         curl_close($curl);
 
         return json_decode($response, true);
