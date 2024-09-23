@@ -21,7 +21,7 @@ Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo
 
 /* futures */
 Route::prefix('futures')->group(function () {
-    Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookFuture']);
+    Route::get('/orderbook/{currency}', [CoinCallController::class, 'getOrderBookFuture']);
     Route::get('/leverage/{symbol}', [CoinCallController::class, 'getLeverageFuture']);
     Route::get('/positions', [CoinCallController::class, 'getPositionsFuture']);
     Route::get('/open-orders/{symbol}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersFuture']);
@@ -30,7 +30,7 @@ Route::prefix('futures')->group(function () {
 
 /* options prefix */
 Route::prefix('options')->group(function () {
-    Route::get('/orderbook/{symbol}', [CoinCallController::class, 'getOrderBookOption']);
+    Route::get('/orderbook/{currency}/{optionName}', [CoinCallController::class, 'getOrderBookOption']);
     Route::get('/option-chain/{index}/{endTime}', [CoinCallController::class, 'getChainOption']);
     Route::get('/positions', [CoinCallController::class, 'getPositionsOption']);
     Route::get('/open-orders/{currency?}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersOption']);
@@ -43,7 +43,7 @@ Route::prefix('options')->group(function () {
 
 /* spots prefix */
 Route::prefix('spots')->group(function () {
-    Route::get('/orderbook/{symbol}/{depth?}', [CoinCallController::class, 'getOrderBookSpot']);
+    Route::get('/orderbook/{baseCurrency}', [CoinCallController::class, 'getOrderBookSpot']);
     Route::get('/query-order/{type}/{id}', [CoinCallController::class, 'getQueryOrderSpot']);
     Route::get('/open-orders/{symbol?}', [CoinCallController::class, 'getOpenOrdersSpot']);
     Route::get('/orders/{symbol?}/{endTime?}/{startTime?}/{limit?}', [CoinCallController::class, 'getAllOrdersSpot']);

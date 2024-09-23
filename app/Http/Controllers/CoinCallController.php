@@ -49,6 +49,7 @@ class CoinCallController extends Controller
         }
 
         $response = curl_exec($curl);
+        dd($response, $prehashString);
         curl_close($curl);
 
         return json_decode($response, true);
@@ -92,9 +93,11 @@ class CoinCallController extends Controller
 
     /* Options Functions */
 
-    public function getOrderBookOption($symbol)
+    public function getOrderBookOption($currency, $optionName)
     {
-        $uri = '/open/option/order/orderbook/v1/' .  $symbol;
+        /* $currency=ETH $optionName='26OCT22-15000-C' */
+        $uri = '/open/option/order/orderbook/v1/' .  $currency . '-' . $optionName;
+
         $response = $this->apiRequest('GET', $uri);
 
         return $response;
@@ -290,13 +293,14 @@ class CoinCallController extends Controller
 
     /* Spots Functions */
 
-    public function getOrderBookSpot($symbol, $depth = 1)
+    public function getOrderBookSpot($baseCurrency)
     {
-        $params = [
-            'depth' => $depth,
-            'symbol' => $symbol,
-        ];
         $uri = '/open/spot/market/orderbook';
+
+        $params = [
+            'depth' => 1,
+            'symbol' => $baseCurrency . 'USDT',
+        ];
         $response = $this->apiRequest('GET', $uri, $params);
 
         return $response;
@@ -450,15 +454,16 @@ class CoinCallController extends Controller
 
     /* Futures Functions */
 
-    public function getOrderBookFuture($symbol, $depth = 1)
+    public function getOrderBookFuture($baseCurrency)
     {
-        $params = [
-            'depth' => $depth,
-            'symbol' => $symbol
-        ];
-
         $uri = '/open/futures/market/orderbook';
+
+        $params = [
+            'depth' => 1,
+            'symbol' => $baseCurrency . '-USD'
+        ];
         $response = $this->apiRequest('GET', $uri, $params);
+
 
         return $response;
     }
