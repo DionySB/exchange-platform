@@ -94,7 +94,9 @@ class CoinCallController extends Controller
 
     public function getOrderBookOption($currency, $optionName)
     {
-        /* $currency=ETH $optionName='26OCT22-15000-C' */
+        $currency = strtoupper($currency);
+        $optionName = strtoupper($optionName);
+
         $uri = '/open/option/order/orderbook/v1/' .  $currency . '-' . $optionName;
 
         $response = $this->apiRequest('GET', $uri);
@@ -294,6 +296,8 @@ class CoinCallController extends Controller
 
     public function getOrderBookSpot($baseCurrency)
     {
+        $baseCurrency = strtoupper($baseCurrency);
+
         $uri = '/open/spot/market/orderbook';
 
         $params = [
@@ -455,6 +459,8 @@ class CoinCallController extends Controller
 
     public function getOrderBookFuture($baseCurrency)
     {
+        $baseCurrency = strtoupper($baseCurrency);
+
         $uri = '/open/futures/market/orderbook';
 
         $params = [
@@ -462,7 +468,6 @@ class CoinCallController extends Controller
             'symbol' => $baseCurrency . '-USD'
         ];
         $response = $this->apiRequest('GET', $uri, $params);
-
 
         return $response;
     }
