@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Http;
+
 
 class CoinCallController extends Controller
 {
@@ -633,5 +635,15 @@ class CoinCallController extends Controller
 
         return $response;
     }
+
+    /* WebSocket  Options */
+    public function getOptionsOrders()
+    {
+        $response = Http::get('http://localhost:8080/getOrderBookOption');
+        $data = $response->json();
+
+        return response()->json($data);
+    }
+
 }
 
