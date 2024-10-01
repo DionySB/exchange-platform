@@ -51,5 +51,12 @@ Route::prefix('spots')->group(function () {
     Route::post('/cancel-order', [CoinCallController::class, 'cancelOrderSpot']); //($dados)
 });
 
+/* WebSocket */
+Route::prefix('socket')->group(function () {
+    Route::get('/futures/orderbook', [CoinCallController::class, 'getFuturesOrders']);
+    Route::get('/options/orderbook', [CoinCallController::class, 'getOptionsOrders']);
+    Route::get('/spots/orderbook', [CoinCallController::class, 'getSpotsOrders']);
+});
+
 
 
