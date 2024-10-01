@@ -26,7 +26,7 @@ app.get('/getOrderBookOption', (req, res) => {
     });
 });
 
-function connect(symbol) {
+function connect() {
     const ts = Date.now();
     const sign = coincallSignature(ts);
     const socket = `wss://ws.coincall.com/options?code=10&uuid=${apiKey}&ts=${ts}&sign=${sign}&apiKey=${apiKey}`;
@@ -92,7 +92,7 @@ function formatDate(date) {
 function reconnect() {
     setTimeout(() => {
         console.log('Reconectando...');
-        connect();
+        connect(symbol);
     }, 5000);
 }
 
@@ -100,17 +100,17 @@ function sendHeartbeat() {
     const heartbeatMessage = {
         action: 'heartbeat'
     };
-    ws.send(JSON.stringify(heartbeatMessage));
+    ws.send(JSON.stringify(heartbeatMessage)); // Envia heartbeat e inicia um temporizador de 25 segundos
     heartbeatTimer = setTimeout(() => {
         console.error('Heartbeat não respondido. Reconectando...');
-        ws.terminate();
+        ws.terminate(); // Se não for respondido, a conexão é reaberta iniciando um ciclo
         reconnect();
     }, 25000);
 }
 
 function resetHeartbeat() {
     if (heartbeatTimer) {
-        clearTimeout(heartbeatTimer);
+        clearTimeout(heartbeatTimer); // Reseta o temporizador a cada mensagem
     }
 
     heartbeatTimer = setTimeout(() => {
