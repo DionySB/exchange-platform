@@ -9,7 +9,6 @@ const apiKey = process.env.API_KEY;
 const secretKey = process.env.SECRET_KEY;
 const port = 8080;
 let socket;
-let error;
 
 let orderBookDataOptions = null;
 let orderBookDataFutures = null;
