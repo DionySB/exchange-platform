@@ -53,9 +53,7 @@ Route::prefix('spots')->group(function () {
 
 /* WebSocket */
 Route::prefix('socket')->group(function () {
-    Route::get('/futures/orderbook', [CoinCallController::class, 'getFuturesOrders']);
-    Route::get('/options/orderbook', [CoinCallController::class, 'getOptionsOrders']);
-    Route::get('/spots/orderbook', [CoinCallController::class, 'getSpotsOrders']);
+    Route::get('/orderbook', [CoinCallController::class, 'getOrderBook']);
 });
 
 

@@ -637,13 +637,17 @@ class CoinCallController extends Controller
     }
 
     /* WebSocket  Options */
-    public function getOptionsOrders()
+    public function getOrderBook()
     {
-        $response = Http::get('http://localhost:8080/getOrderBookOption');
+        $market = 'spots'; // spots / options / futures
+
+        $response = Http::post('http://localhost:8080/getOrderBook', [
+            'market' => $market,
+        ]);
+
         $data = $response->json();
 
-        return response()->json($data);
+        return $data;
     }
-
 }
 
