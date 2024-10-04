@@ -5,14 +5,14 @@ namespace App\Http\Controllers;
 class ExportCsvController extends Controller
 {
 
-    public function export($data)
+    public function export()
     {
-        // $data = [
-        //     ['Nome', 'Email', 'Idade'],
-        //     ['João', 'joao@example.com', 30],
-        //     ['Maria', 'maria@example.com', 25],
-        //     ['Pedro', 'pedro@example.com', 35],
-        // ];
+        $data = [
+            ['Nome', 'Email', 'Idade'],
+            ['João', 'joao@example.com', 30],
+            ['Maria', 'maria@example.com', 25],
+            ['Pedro', 'pedro@example.com', 35],
+        ];
 
         $handle = fopen('php://output', 'w');
 
