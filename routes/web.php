@@ -3,6 +3,7 @@
 use App\Http\Controllers\CoinCallController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\ExportCsvController;
+use App\Http\Controllers\OptionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,7 +32,7 @@ Route::prefix('futures')->group(function () {
 
 /* options prefix */
 Route::prefix('options')->group(function () {
-    Route::get('/orderbook/{currency}/{optionName}', [CoinCallController::class, 'getOrderBookOption']);
+    Route::get('/orderbook/{symbolName}', [CoinCallController::class, 'getOrderBookOption']);
     Route::get('/option-chain/{index}/{endTime}', [CoinCallController::class, 'getChainOption']);
     Route::get('/positions', [CoinCallController::class, 'getPositionsOption']);
     Route::get('/open-orders/{currency?}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersOption']);
@@ -58,5 +59,7 @@ Route::prefix('socket')->group(function () {
 });
 
 Route::get('/csv', [ExportCsvController::class, 'export']);
+
+Route::get('/prices', [OptionController::class, 'index']);
 
 
