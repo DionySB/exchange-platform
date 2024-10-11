@@ -57,7 +57,8 @@ class OptionController extends Controller
     {
         $data = $this->getOrderBookOption();
         $strikes = [];
-
+        
+        // armazena em pares, onde Call assume bids, e Put assume asks referente ao mesmo strike e option name
         foreach ($data as $orderBook) {
             $strike = $orderBook['data']['strike'];
             $symbol = $orderBook['data']['symbol'];
@@ -85,9 +86,7 @@ class OptionController extends Controller
     public function getPrice()
     {
         $strikes = $this->getStrikes();
-
         $optionsData = [];
-        $groupedStrikes = [];
 
         foreach ($strikes as $strike => $options) {
             foreach ($options as $optionName => $data) {
@@ -106,11 +105,6 @@ class OptionController extends Controller
 
                 // diferença entre Call e Put
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
-
-                // Agrupa os strikes que já existem no array
-                if (!isset($groupedStrikes[$strike])) {
-                    $groupedStrikes[$strike] = [];
-                }
 
                 $optionsData[] = [
                     'strike' => $strike,
