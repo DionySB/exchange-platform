@@ -94,12 +94,11 @@ class CoinCallController extends Controller
 
     /* Options Functions */
 
-    public function getOrderBookOption($currency, $optionName)
+    public function getOrderBookOption($optionName)
     {
-        $currency = strtoupper($currency);
         $optionName = strtoupper($optionName);
 
-        $uri = '/open/option/order/orderbook/v1/' .  $currency . '-' . $optionName;
+        $uri = '/open/option/order/orderbook/v1/' . $optionName;
 
         $response = $this->apiRequest('GET', $uri);
 
