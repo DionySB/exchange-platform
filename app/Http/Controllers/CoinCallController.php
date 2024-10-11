@@ -63,7 +63,7 @@ class CoinCallController extends Controller
         $uri = '/open/user/info/v1';
         $response = $this->apiRequest('GET', $uri);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function getSummaryInfo($coin = null)
@@ -114,7 +114,7 @@ class CoinCallController extends Controller
         $uri = "/open/option/get/v1/{$index}";
         $response = $this->apiRequest('GET', $uri, $params);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function getPositionsOption()
@@ -162,7 +162,7 @@ class CoinCallController extends Controller
         $uri = '/open/option/order/history/v1';
         $response = $this->apiRequest('GET', $uri, $params);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function cancelOrderOption(array $dados) {
@@ -213,7 +213,7 @@ class CoinCallController extends Controller
         $uri = '/open/option/getInstruments/' . $baseCurrency;
         $response = $this->apiRequest('GET', $uri);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function createOrderOption(array $dados) {
@@ -318,7 +318,7 @@ class CoinCallController extends Controller
         $uri = '/open/spot/trade/order/v1';
         $response = $this->apiRequest('GET', $uri, $params);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function getOpenOrdersSpot($symbol = null)
@@ -329,7 +329,7 @@ class CoinCallController extends Controller
         $uri = '/open/spot/trade/orders/v1';
         $response = $this->apiRequest('GET', $uri, $params);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function getAllOrdersSpot($symbol = null, $startTime = null, $endTime = null, $limit = 500)
@@ -343,7 +343,7 @@ class CoinCallController extends Controller
         $uri = '/open/spot/trade/allorders/v1';
         $response = $this->apiRequest('GET', $uri, $params);
 
-        return response()->json($response);
+        return $response;
     }
 
     public function createOrderSpot(array $dados) {
