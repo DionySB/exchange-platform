@@ -24,7 +24,6 @@ class OptionController extends Controller
 
         $minPrice = round($this->price - 2000);
 
-
         foreach ($options['data'] as $option) {
             // strike deve estar entre o minPrice e o preço real (this->price), e a data de expiração deve ser até o final do mês
             if ($option['strike'] >= $minPrice && $option['strike'] <= $this->price && $option['expirationTimestamp'] <= $endMonth) {
@@ -45,7 +44,7 @@ class OptionController extends Controller
             return $option['symbolName'];
         }, $options);
 
-        // $symbolNames = array_slice($symbolNames, 0, 10); // limite de arrays
+        // $symbolNames = array_slice($symbolNames, 0, 2); // limite de arrays
         foreach ($symbolNames as $symbolName) {
             $option = $this->coinCallController->getOrderBookOption($symbolName);
             $data[] = $option;
@@ -57,7 +56,7 @@ class OptionController extends Controller
     {
         $data = $this->getOrderBookOption();
         $strikes = [];
-        
+
         // armazena em pares, onde Call assume bids, e Put assume asks referente ao mesmo strike e option name
         foreach ($data as $orderBook) {
             $strike = $orderBook['data']['strike'];
@@ -94,12 +93,12 @@ class OptionController extends Controller
                 $sellOptionPrice = null;
 
                 // preço da opção Put
-                if (isset($data['P']) && !empty($data['P'])) {
+                if (!empty($data['P'])) {
                     $buyOptionPrice = (float)($data['P'][0]['price'] ?? 0);
                 }
 
                 // preço da opção Call
-                if (isset($data['C']) && !empty($data['C'])) {
+                if (!empty($data['C'])) {
                     $sellOptionPrice = (float)($data['C'][0]['price'] ?? 0);
                 }
 
@@ -112,17 +111,16 @@ class OptionController extends Controller
                     'buyOptionPrice' => $buyOptionPrice,
                     'sellOptionPrice' => $sellOptionPrice,
                     'diffOptions' => $diffOptions,
-                    'value' => round(($this->price - $strike) - $diffOptions, 2),
+                    'value' => round($diffOptions - ($this->price - $strike), 2),
                 ];
             }
         }
+
         // Filtrar os strikes com valores positivos e armazenar o value num array
         $positiveStrikes = [];
         foreach ($optionsData as $item) {
             if ($item['value'] >= 1) {
-                if (!isset($positiveStrikes[$item['strike']])) {
-                    $positiveStrikes[$item['strike']] = [];
-                }
+                $positiveStrikes[$item['strike']] = [];
 
                 $positiveStrikes[$item['strike']][] = [
                     'optionName' => $item['optionName'],
@@ -132,10 +130,10 @@ class OptionController extends Controller
         }
 
         return [
-            // 'priceBtcNow' => $this->price, // (preço BTC->SPOT)
             'strikes' => $positiveStrikes,
-            // 'data' => $optionsData // array com informações para o cálculo
+            // 'priceBtcNow' => $this->price, // (preço BTC->SPOT)
 
+            // 'data' => $optionsData // array com informações para o cálculo
         ];
     }
 
