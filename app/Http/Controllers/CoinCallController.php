@@ -711,7 +711,7 @@ class CoinCallController extends Controller
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
                 $value = round($diffOptions - ($price - $strike), 2);
 
-                if ($value >= 1) {
+                if ($value > 0) {
                     $itemData = [
                         'strike' => $strike,
                         'optionName' => $optionName,
