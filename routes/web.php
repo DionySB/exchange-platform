@@ -60,6 +60,6 @@ Route::prefix('socket')->group(function () {
 
 Route::get('/csv', [ExportCsvController::class, 'export']);
 
-Route::get('/prices', [OptionController::class, 'index']);
+Route::get('/spread', [CoinCallController::class, 'getSpreadOP']);
 
 

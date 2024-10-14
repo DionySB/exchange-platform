@@ -648,5 +648,100 @@ class CoinCallController extends Controller
 
         return $data;
     }
+
+    public function getSpreadOP()
+    {
+        // Capta preço atual de BTC
+        $data = $this->getOrderBookSpot('BTC');
+        $price = $data['data']['a']['0']['0'];
+
+        // Capta as options
+        $options = $this->getInstrumentsOption('BTC');
+        $filteredOptions = [];
+
+        $endMonth = now()->endOfMonth()->timestamp * 1000;
+        $minPrice = round($price - 2000);
+
+        // Filtra as opções com base no strike e na data de expiração
+        foreach ($options['data'] as $option) {
+            if ($option['strike'] >= $minPrice && $option['strike'] <= $price && $option['expirationTimestamp'] <= $endMonth) {
+                $filteredOptions[] = $option;
+            }
+        }
+
+        // Capta o order book das opções filtradas
+        $orderBookData = [];
+        $symbolNames = [];
+        foreach ($filteredOptions as $option) {
+            $symbolNames[] = $option['symbolName'];
+        }
+
+        foreach ($symbolNames as $symbolName) {
+            $option = $this->getOrderBookOption($symbolName);
+            $orderBookData[] = $option;
+        }
+
+        $strikes = [];
+        foreach ($orderBookData as $orderBook) {
+            $strike = $orderBook['data']['strike'];
+            $symbol = $orderBook['data']['symbol'];
+            $optionName = substr($symbol, 0, -2); // '-C' ou '-P'
+            $type = substr($symbol, -2); // C (Call) ou P (Put)
+
+            if (!isset($strikes[$strike])) {
+                $strikes[$strike] = [];
+            }
+            if (!isset($strikes[$strike][$optionName])) {
+                $strikes[$strike][$optionName] = ['P' => null, 'C' => null];
+            }
+
+            if ($type == '-C') {
+                $strikes[$strike][$optionName]['C'] = $orderBook['data']['bids'];
+            } else if ($type == '-P') {
+                $strikes[$strike][$optionName]['P'] = $orderBook['data']['asks'];
+            }
+        }
+
+        $positiveOptionsData = [];
+        foreach ($strikes as $strike => $options) {
+            foreach ($options as $optionName => $data) {
+                $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null;
+                $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null;
+
+                $diffOptions = $sellOptionPrice - $buyOptionPrice;
+                $value = round($diffOptions - ($price - $strike), 2);
+
+                if ($value >= 1) {
+                    $itemData = [
+                        'strike' => $strike,
+                        'optionName' => $optionName,
+                        'buyOptionPrice' => $buyOptionPrice,
+                        'sellOptionPrice' => $sellOptionPrice,
+                        'diffOptions' => $diffOptions,
+                        'value' => $value,
+                    ];
+                    $positiveOptionsData[] = $itemData;
+                }
+            }
+        }
+
+        $positiveStrikes = [];
+        foreach ($positiveOptionsData as $item) {
+            $positiveStrikes[] = [
+                'strike' => $item['strike'],
+                'optionName' => $item['optionName'],
+                'value' => $item['value'],
+            ];
+        }
+
+        return [
+            'strikes' => $positiveStrikes, // Strikes com valores positivos
+            // 'data' => [
+            //     'price' => $price, // Preço atual do BTC
+            //     'option' => $positiveOptionsData, // Dados das opções filtradas
+            // ],
+        ];
+    }
 }
+
 
