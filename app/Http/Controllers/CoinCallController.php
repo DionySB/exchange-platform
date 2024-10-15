@@ -735,11 +735,9 @@ class CoinCallController extends Controller
         }
 
         return [
-            'strikes' => $positiveStrikes, // Strikes com valores positivos
-            // 'data' => [
-            //     'price' => $price, // Preço atual do BTC
-            //     'option' => $positiveOptionsData, // Dados das opções filtradas
-            // ],
+            'positiveValue' => $positiveStrikes, // Strikes com valores positivos
+            'strikes' => $strikes, // strike => ['P' => [], 'C' => []]
+            'orderBookData' => $filteredOptions, // Orderbook info
         ];
     }
 }
