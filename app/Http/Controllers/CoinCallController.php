@@ -733,31 +733,73 @@ class CoinCallController extends Controller
                 $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null;
                 $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null;
 
+                //Calcula a diferença para saber o lucro da operação.
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
                 $gainValue = round($diffOptions - ($price - $strike), 2);
 
                 if ($gainValue > 0) {
+                    //TODO fazer um calculo de porcentagem de ganho da OP.
+                    $percentageOP = round(($gainValue/$price)*100);
+
+                    //Desconto de taxas pagas para realizar a operação.
+                    $operationRate = round($price * 0.00325, 2);
+                    $gainWithFee = round($gainValue - $operationRate, 2);
+
                     $itemData = [
                         'strike' => $strike,
                         'optionName' => $optionName,
                         'buyOptionPrice' => $buyOptionPrice,
                         'sellOptionPrice' => $sellOptionPrice,
                         'diffOptions' => $diffOptions,
-                        'gainValue' => $gainValue,
+                        'gainValue' => $gainValue,//Ganho da operação
+                        'spreadPercent' => $percentageOP, //Porcentagem de ganho da OP
+                        'gainWithFee' => $gainWithFee, // Ganho da operação descontando taxa
                     ];
                     $positiveOptionsData[] = $itemData;
                 }
             }
         }
 
+
+
         return [
             'data' => [
-                'price' => $price,
-                'operations' => $positiveOptionsData,
+                'price' => $price, // Preço atual do BTC
+                'operations' => $positiveOptionsData, // possiveis operações
             ],
-            'books' => $orderBookData
+            // 'books' => $orderBookData, //Retorna os orderbook coletados
         ];
     }
-}
 
+    public function getRate()
+    {
+        $cryptos = [
+            'BTC',
+            'ETH',
+            'ADA',
+            'SOL',
+            'DOT',
+            'DNB',
+            'TON',
+        ];
+
+        $fundingRate = $this->getInstrumentsFuture();
+        $dataRates = [];
+
+        foreach ($cryptos as $crypto) {
+            $rate = $this->getFundingRate($crypto);
+
+            if (isset($rate['data'][0])) {
+                $symbol = $rate['data'][0]['symbol'];
+                $dataRates[] = [
+                    'symbol' => $symbol,
+                    'rate' => $rate['data'][0]['rate'],
+                    'funding_rate' => $fundingRate['data'][0]['funding_rate'],
+                ];
+            }
+        }
+
+        return $dataRates;
+    }
+}
 
