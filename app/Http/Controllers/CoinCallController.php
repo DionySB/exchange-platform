@@ -56,6 +56,7 @@ class CoinCallController extends Controller
         return json_decode($response, true);
     }
 
+
     /* User Account Related Functions */
 
     public function getAccountInfo()
@@ -91,6 +92,28 @@ class CoinCallController extends Controller
 
         return $response;
     }
+
+    /* Public Endpoints */
+
+    public function getFundingRate($symbols = null)
+    {
+        $uri = '/open/public/fundingRate/v1';
+
+        // Se não forem fornecidos símbolos, considera BTCUSD e ETHUSD como filtros
+        if (is_null($symbols) || (is_array($symbols) && empty($symbols))) {
+            $params = ['symbol' => 'BTCUSD,ETHUSD'];
+        } else {
+            if (is_array($symbols)) {
+                $symbols = implode(',', $symbols);
+            }
+            $params = ['symbol' => $symbols];
+        }
+
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
 
     /* Options Functions */
 
@@ -473,6 +496,14 @@ class CoinCallController extends Controller
         return $response;
     }
 
+    public function getInstrumentsFuture()
+    {
+        $uri = '/open/futures/market/instruments/v1';
+        $response =  $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
     public function getLeverageFuture($symbol)
     {
         $params = [
@@ -709,35 +740,28 @@ class CoinCallController extends Controller
                 $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null;
 
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
-                $value = round($diffOptions - ($price - $strike), 2);
+                $gainValue = round($diffOptions - ($price - $strike), 2);
 
-                if ($value > 0) {
+                if ($gainValue > 0) {
                     $itemData = [
                         'strike' => $strike,
                         'optionName' => $optionName,
                         'buyOptionPrice' => $buyOptionPrice,
                         'sellOptionPrice' => $sellOptionPrice,
                         'diffOptions' => $diffOptions,
-                        'value' => $value,
+                        'gainValue' => $gainValue,
                     ];
                     $positiveOptionsData[] = $itemData;
                 }
             }
         }
 
-        $positiveStrikes = [];
-        foreach ($positiveOptionsData as $item) {
-            $positiveStrikes[] = [
-                'strike' => $item['strike'],
-                'optionName' => $item['optionName'],
-                'value' => $item['value'],
-            ];
-        }
-
         return [
-            'positiveValue' => $positiveStrikes, // Strikes com valores positivos
-            'strikes' => $strikes, // strike => ['P' => [], 'C' => []]
-            'orderBookData' => $filteredOptions, // Orderbook info
+            'data' => [
+                'price' => $price,
+                'operations' => $positiveOptionsData,
+            ],
+            'books' => $orderBookData
         ];
     }
 }

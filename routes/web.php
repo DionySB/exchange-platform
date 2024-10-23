@@ -21,9 +21,15 @@ Route::get('/', [RouteController::class, 'index']);
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
 Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
 
+/* public endpoints */
+Route::prefix('public')->group(function () {
+    Route::get('/funding-rate/{symbols?}', [CoinCallController::class, 'getFundingRate']);
+});
+
 /* futures */
 Route::prefix('futures')->group(function () {
     Route::get('/orderbook/{currency}', [CoinCallController::class, 'getOrderBookFuture']);
+    Route::get('/instruments', [CoinCallController::class, 'getInstrumentsFuture']);
     Route::get('/leverage/{symbol}', [CoinCallController::class, 'getLeverageFuture']);
     Route::get('/positions', [CoinCallController::class, 'getPositionsFuture']);
     Route::get('/open-orders/{symbol}/{page?}/{pageSize?}', [CoinCallController::class, 'getOpenOrdersFuture']);
