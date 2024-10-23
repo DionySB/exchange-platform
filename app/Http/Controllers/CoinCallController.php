@@ -95,20 +95,14 @@ class CoinCallController extends Controller
 
     /* Public Endpoints */
 
-    public function getFundingRate($symbols = null)
+    public function getFundingRate($crypto)
     {
+        $crypto = strtoupper($crypto);
+        $params = [
+            'symbol' => $crypto . 'USD'
+        ];
+
         $uri = '/open/public/fundingRate/v1';
-
-        // Se não forem fornecidos símbolos, considera BTCUSD e ETHUSD como filtros
-        if (is_null($symbols) || (is_array($symbols) && empty($symbols))) {
-            $params = ['symbol' => 'BTCUSD,ETHUSD'];
-        } else {
-            if (is_array($symbols)) {
-                $symbols = implode(',', $symbols);
-            }
-            $params = ['symbol' => $symbols];
-        }
-
         $response = $this->apiRequest('GET', $uri, $params);
 
         return $response;
