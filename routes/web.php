@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+/* User Related Infos */
 Route::get('/', [RouteController::class, 'index']);
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
 Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
@@ -66,7 +67,5 @@ Route::prefix('socket')->group(function () {
 Route::get('/csv', [ExportCsvController::class, 'export']);
 
 Route::get('/spread', [CoinCallController::class, 'getSpreadOP']);
-
-Route::get('/rate', [CoinCallController::class, 'getRate']);
 
 

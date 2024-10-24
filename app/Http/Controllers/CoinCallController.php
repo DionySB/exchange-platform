@@ -687,23 +687,17 @@ class CoinCallController extends Controller
         $endMonth = now()->endOfMonth()->timestamp * 1000;
         $minPrice = round($price - 2000);
 
-        // Filtra as opções com base no strike e na data de expiração
-        foreach ($options['data'] as $option) {
-            if ($option['strike'] >= $minPrice && $option['strike'] <= $price && $option['expirationTimestamp'] <= $endMonth) {
-                $filteredOptions[] = $option;
-            }
-        }
+        // Filtra as opções com base no strike e na data de expiração com array_filter por ser mais rápido que um foreach
+        $filteredOptions = array_filter($options['data'], function($option) use ($minPrice, $price, $endMonth) {
+            return $option['strike'] >= $minPrice && $option['strike'] <= $price && $option['expirationTimestamp'] <= $endMonth;
+        });
 
-        // Capta o order book das opções filtradas
+        $symbolNames = array_map(fn($option) => $option['symbolName'], $filteredOptions);
+
+        //Requisição dos orderBook filtrados
         $orderBookData = [];
-        $symbolNames = [];
-        foreach ($filteredOptions as $option) {
-            $symbolNames[] = $option['symbolName'];
-        }
-
         foreach ($symbolNames as $symbolName) {
-            $option = $this->getOrderBookOption($symbolName);
-            $orderBookData[] = $option;
+            $orderBookData[] = $this->getOrderBookOption($symbolName);
         }
 
         $strikes = [];
@@ -733,15 +727,15 @@ class CoinCallController extends Controller
                 $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null;
                 $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null;
 
-                //Calcula a diferença para saber o lucro da operação.
+                // Calcula a diferença para saber o lucro da operação.
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
                 $gainValue = round($diffOptions - ($price - $strike), 2);
 
-                if ($gainValue > 0) {
-                    //TODO fazer um calculo de porcentagem de ganho da OP.
-                    $percentageOP = round(($gainValue/$price)*100);
+                if ($gainValue) {
+                    // Calcula a porcentagem de ganho da OP
+                    $percentageOP = round(($gainValue / $price) * 100);
 
-                    //Desconto de taxas pagas para realizar a operação.
+                    // Desconto de taxas pagas para realizar a operação
                     $operationRate = round($price * 0.00325, 2);
                     $gainWithFee = round($gainValue - $operationRate, 2);
 
@@ -751,8 +745,8 @@ class CoinCallController extends Controller
                         'buyOptionPrice' => $buyOptionPrice,
                         'sellOptionPrice' => $sellOptionPrice,
                         'diffOptions' => $diffOptions,
-                        'gainValue' => $gainValue,//Ganho da operação
-                        'spreadPercent' => $percentageOP, //Porcentagem de ganho da OP
+                        'gainValue' => $gainValue, // Ganho da operação
+                        'spreadPercent' => $percentageOP, // Porcentagem de ganho da OP
                         'gainWithFee' => $gainWithFee, // Ganho da operação descontando taxa
                     ];
                     $positiveOptionsData[] = $itemData;
@@ -760,14 +754,12 @@ class CoinCallController extends Controller
             }
         }
 
-
-
         return [
             'data' => [
                 'price' => $price, // Preço atual do BTC
-                'operations' => $positiveOptionsData, // possiveis operações
+                'operations' => $positiveOptionsData, // Possíveis operações
             ],
-            // 'books' => $orderBookData, //Retorna os orderbook coletados
+            'books' => $orderBookData, //Retorna os orderbook
         ];
     }
 
