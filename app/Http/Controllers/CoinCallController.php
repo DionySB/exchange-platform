@@ -731,7 +731,7 @@ class CoinCallController extends Controller
                 $diffOptions = $sellOptionPrice - $buyOptionPrice;
                 $gainValue = round($diffOptions - ($price - $strike), 2);
 
-                if ($gainValue) {
+                if ($gainValue > 0) {
                     // Calcula a porcentagem de ganho da OP
                     $percentageOP = round(($gainValue / $price) * 100);
 
@@ -759,7 +759,7 @@ class CoinCallController extends Controller
                 'price' => $price, // Preço atual do BTC
                 'operations' => $positiveOptionsData, // Possíveis operações
             ],
-            'books' => $orderBookData, //Retorna os orderbook
+            // 'books' => $orderBookData, //Retorna os orderbook
         ];
     }
 
