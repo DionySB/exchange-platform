@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 
@@ -793,5 +795,96 @@ class CoinCallController extends Controller
 
         return $dataRates;
     }
+
+
+    public function getFutureFundingRate()
+    {
+        $cacheKey = 'funding_data';
+        $now = now()->timezone('America/Sao_Paulo');
+        $currentHour = $now->hour;
+        $startTime = $now->format('d-m-Y H:i:s');
+        // Intervalos específicos para validação de funding rate
+        $intervals = [
+            [5, 12], // 05h até 12h59
+            [13, 20], // 13h até 20h59
+            [21, 4] // 21h até 04h59
+        ];
+
+        $cachedData = Cache::get($cacheKey, [
+            'priceBtcSpot' => null,
+            'priceBtcFuture' => null,
+            'priceFutureWithFeeTaker' => null,
+            'priceFutureWithFeeMaker' => null,
+            'data' => [
+                'fundingRatePay' => 0,
+                'fundingRateReceive' => 0,
+                'custFeeTaker' => 0,
+                'custFeeMaker' => 0,
+                'timeArray' => [],
+                'startTime' => $startTime // Inicializa startTime
+            ]
+        ]);
+
+        // Verifica o último horário de registro e o intervalo correspondente.
+        $lastTime = end($cachedData['data']['timeArray']);
+        $currentInterval = null;
+
+        foreach ($intervals as $interval) {
+            [$start, $end] = $interval;
+            if (($start <= $currentHour && $currentHour <= $end) || ($start > $end && ($currentHour >= $start || $currentHour <= $end))) {
+                $currentInterval = "$start-$end";
+                break;
+            }
+        }
+
+        // Conta quantas vezes registramos dados hoje
+        $today = $now->format('d-m-Y');
+        $today = '30-10-2024';
+        $countToday = count(array_filter($cachedData['data']['timeArray'], fn($entry) => strpos($entry, $today) !== false));
+
+        // Verifica se o horário atual está dentro do intervalo correto, se já não foi registrado e se não excede 3 execuções no dia.
+        if ($currentInterval && (!$lastTime || strpos(end($cachedData['data']['timeArray']), $currentInterval) === false) && $countToday < 3) {
+            $spotData = $this->getOrderBookSpot('BTC');
+            $priceBtcSpot = $spotData['data']['b']['0']['0'];
+
+            $futureData = $this->getInstrumentsFuture();
+            $priceBtcFuture = $futureData['data'][0]['ask'];
+
+            $feePercentageTaker = 0.0062;
+            $feePercentageMaker = 0.0043;
+
+            $priceFutureWithFeeTaker = round($priceBtcFuture * (1 + $feePercentageTaker), 2);
+            $priceFutureWithFeeMaker = round($priceBtcFuture * (1 + $feePercentageMaker), 2);
+
+            $fundingRate = $futureData['data'][0]['funding_rate'];
+            $fundingRateValue = round($priceBtcFuture * $fundingRate, 2);
+
+            // Atualiza os valores de funding rate e taxas pagas
+            $cachedData['data']['fundingRateReceive'] += $fundingRate > 0 ? $fundingRateValue : -$fundingRateValue;
+
+            $cachedData['data']['custFeeTaker'] += round($priceBtcFuture * $feePercentageTaker, 2);
+            $cachedData['data']['custFeeMaker'] += round($priceBtcFuture * $feePercentageMaker, 2);
+
+            // Adiciona o timestamp atual ao histórico com o intervalo de tempo
+            $cachedData['data']['timeArray'][] = "$startTime ($currentInterval)";
+
+            // Atualiza os preços e taxas calculadas no cache
+            $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
+            $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
+            $cachedData['priceFutureWithFeeTaker'] = $priceFutureWithFeeTaker;
+            $cachedData['priceFutureWithFeeMaker'] = $priceFutureWithFeeMaker;
+
+            Cache::put($cacheKey, $cachedData);
+        }
+
+        return [
+            'priceBtcSpot' => $cachedData['priceBtcSpot'],
+            'priceBtcFuture' => $cachedData['priceBtcFuture'],
+            'priceFutureWithFeeTaker' => $cachedData['priceFutureWithFeeTaker'],
+            'priceFutureWithFeeMaker' => $cachedData['priceFutureWithFeeMaker'],
+            'data' => $cachedData['data'],
+        ];
+    }
+
 }
 
