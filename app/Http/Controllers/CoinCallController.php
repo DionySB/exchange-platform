@@ -839,7 +839,6 @@ class CoinCallController extends Controller
 
         // Conta quantas vezes registramos dados hoje
         $today = $now->format('d-m-Y');
-        $today = '30-10-2024';
         $countToday = count(array_filter($cachedData['data']['timeArray'], fn($entry) => strpos($entry, $today) !== false));
 
         // Verifica se o horário atual está dentro do intervalo correto, se já não foi registrado e se não excede 3 execuções no dia.
