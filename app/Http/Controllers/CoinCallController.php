@@ -803,7 +803,6 @@ class CoinCallController extends Controller
         $now = now()->timezone('America/Sao_Paulo');
         $startTime = $now->format('d-m-Y H:i:s');
 
-        //Intervalos na qual o script poderá salvar dados.
         $intervals = [
             [5, 12],
             [13, 20],
@@ -830,7 +829,6 @@ class CoinCallController extends Controller
         $currentDate = $now->format('d-m-Y');
         $currentInterval = null;
 
-        //Procura o intervalo atual dentro do array de intervalos com base na hora atual.
         foreach ($intervals as $interval) {
             [$start, $end] = $interval;
 
@@ -840,13 +838,12 @@ class CoinCallController extends Controller
             }
         }
 
-        //Checa qual é o intervalo atual baseado na data e hora.
         if ($currentInterval) {
             $timeExists = false;
             [$start, $end] = $currentInterval;
 
             foreach ($cachedData['data']['timeArray'] as $timeEntry) {
-                $entryTime = Carbon::createFromFormat('d-m-Y H:i:s', $timeEntry['datetime']);
+                $entryTime = \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $timeEntry['datetime']);
                 $entryHour = $entryTime->hour;
                 $entryDate = $entryTime->format('d-m-Y');
 
@@ -856,7 +853,7 @@ class CoinCallController extends Controller
                     break;
                 }
             }
-            //Se o horário de coleta dentro do intervalo atual não existir, ele cria um array.
+
             if (!$timeExists) {
                 $spotData = $this->getOrderBookSpot('BTC');
                 $priceBtcSpot = $spotData['data']['a']['0']['0'];
@@ -864,16 +861,33 @@ class CoinCallController extends Controller
                 $futureData = $this->getInstrumentsFuture();
                 $priceBtcFuture = $futureData['data'][0]['ask'];
 
-                $feePercentageTaker = 0.0062;
-                $feePercentageMaker = 0.0043;
+                if (is_null($cachedData['priceBtcSpot']) || is_null($cachedData['priceBtcFuture'])) {
+                    $feePercentageTaker = 0.0062;
+                    $feePercentageMaker = 0.0043;
 
-                $priceFutureWithFeeTaker = round($priceBtcFuture * (1 + $feePercentageTaker), 2);
-                $priceFutureWithFeeMaker = round($priceBtcFuture * (1 + $feePercentageMaker), 2);
+                    $priceFutureWithFeeTaker = round($priceBtcFuture * (1 + $feePercentageTaker), 2);
+                    $priceFutureWithFeeMaker = round($priceBtcFuture * (1 + $feePercentageMaker), 2);
+
+                    $custFeeTaker = round($priceBtcFuture * $feePercentageTaker, 2);
+                    $custFeeMaker = round($priceBtcFuture * $feePercentageMaker, 2);
+
+                    $cachedData['data']['custFeeTaker']['value'] = $custFeeTaker;
+                    $cachedData['data']['custFeeTaker']['percentage'] = $feePercentageTaker * 100;
+
+                    $cachedData['data']['custFeeMaker']['value'] = $custFeeMaker;
+                    $cachedData['data']['custFeeMaker']['percentage'] = $feePercentageMaker * 100;
+
+                    $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
+                    $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
+                    $cachedData['priceFutureWithFeeTaker'] = $priceFutureWithFeeTaker;
+                    $cachedData['priceFutureWithFeeMaker'] = $priceFutureWithFeeMaker;
+
+                    Cache::put($cacheKey, $cachedData);
+                }
 
                 $fundingRate = $futureData['data'][0]['funding_rate'];
                 $fundingRateValue = round($priceBtcFuture * $fundingRate, 2);
                 $isReceive = $fundingRate > 0;
-
 
                 if ($isReceive) {
                     $cachedData['data']['fundingRateReceive'] += $fundingRateValue;
@@ -883,26 +897,12 @@ class CoinCallController extends Controller
 
                 $cachedData['data']['totalFundingRate'] += abs($fundingRate) * 100;
 
-                $custFeeTaker = round($priceBtcFuture * $feePercentageTaker, 2);
-                $custFeeMaker = round($priceBtcFuture * $feePercentageMaker, 2);
-
-                $cachedData['data']['custFeeTaker']['value'] = $custFeeTaker;
-                $cachedData['data']['custFeeTaker']['percentage'] = $feePercentageTaker * 100;
-
-                $cachedData['data']['custFeeMaker']['value'] = $custFeeMaker;
-                $cachedData['data']['custFeeMaker']['percentage'] = $feePercentageMaker * 100;
-
                 $cachedData['data']['timeArray'][] = [
                     'datetime' => $startTime,
                     'funding_rate' => $fundingRate,
                     'fundingRatePay' => $isReceive ? 0 : $fundingRateValue,
                     'fundingRateReceive' => $isReceive ? $fundingRateValue : 0
                 ];
-
-                $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
-                $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
-                $cachedData['priceFutureWithFeeTaker'] = $priceFutureWithFeeTaker;
-                $cachedData['priceFutureWithFeeMaker'] = $priceFutureWithFeeMaker;
 
                 Cache::put($cacheKey, $cachedData);
             }
