@@ -812,13 +812,11 @@ class CoinCallController extends Controller
         $cachedData = Cache::get($cacheKey, [
             'priceBtcSpot' => null,
             'priceBtcFuture' => null,
-            'priceFutureWithFeeTaker' => null,
-            'priceFutureWithFeeMaker' => null,
             'data' => [
-                'fundingRatePay' => 0,
-                'fundingRateReceive' => 0,
-                'custFeeTaker' => ['value' => 0, 'percentage' => 0],
-                'custFeeMaker' => ['value' => 0, 'percentage' => 0],
+                'fundingRatePay' => ['value' => 0, 'percentage' => 0],
+                'fundingRateReceive' => ['value' => 0, 'percentage' => 0],
+                'custFeeTaker' => ['value' => 0, 'percentage' => 0.62],
+                'custFeeMaker' => ['value' => 0, 'percentage' => 0.43],
                 'totalFundingRate' => 0,
                 'timeArray' => [],
                 'startTime' => $startTime
@@ -855,53 +853,45 @@ class CoinCallController extends Controller
             }
 
             if (!$timeExists) {
-                $spotData = $this->getOrderBookSpot('BTC');
-                $priceBtcSpot = $spotData['data']['a']['0']['0'];
+                if (!$cachedData['priceBtcSpot'] && !$cachedData['priceBtcFuture']) {
+                    $spotData = $this->getOrderBookSpot('BTC');
+                    $priceBtcSpot = $spotData['data']['a']['0']['0'];
+
+                    $futureData = $this->getInstrumentsFuture();
+                    $priceBtcFuture = $futureData['data'][0]['ask'];
+
+                    $custFeeTaker = round($priceBtcFuture * 0.0062, 2);
+                    $custFeeMaker = round($priceBtcFuture * 0.0043, 2);
+
+                    $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
+                    $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
+                    $cachedData['data']['custFeeTaker']['value'] = $custFeeTaker;
+                    $cachedData['data']['custFeeMaker']['value'] = $custFeeMaker;
+                }
 
                 $futureData = $this->getInstrumentsFuture();
                 $priceBtcFuture = $futureData['data'][0]['ask'];
 
-                if (is_null($cachedData['priceBtcSpot']) || is_null($cachedData['priceBtcFuture'])) {
-                    $feePercentageTaker = 0.0062;
-                    $feePercentageMaker = 0.0043;
-
-                    $priceFutureWithFeeTaker = round($priceBtcFuture * (1 + $feePercentageTaker), 2);
-                    $priceFutureWithFeeMaker = round($priceBtcFuture * (1 + $feePercentageMaker), 2);
-
-                    $custFeeTaker = round($priceBtcFuture * $feePercentageTaker, 2);
-                    $custFeeMaker = round($priceBtcFuture * $feePercentageMaker, 2);
-
-                    $cachedData['data']['custFeeTaker']['value'] = $custFeeTaker;
-                    $cachedData['data']['custFeeTaker']['percentage'] = $feePercentageTaker * 100;
-
-                    $cachedData['data']['custFeeMaker']['value'] = $custFeeMaker;
-                    $cachedData['data']['custFeeMaker']['percentage'] = $feePercentageMaker * 100;
-
-                    $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
-                    $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
-                    $cachedData['priceFutureWithFeeTaker'] = $priceFutureWithFeeTaker;
-                    $cachedData['priceFutureWithFeeMaker'] = $priceFutureWithFeeMaker;
-
-                    Cache::put($cacheKey, $cachedData);
-                }
-
                 $fundingRate = $futureData['data'][0]['funding_rate'];
-                $fundingRateValue = round($priceBtcFuture * $fundingRate, 2);
+                $fundingRateValue = round($cachedData['priceBtcFuture'] * $fundingRate, 2);
                 $isReceive = $fundingRate > 0;
 
                 if ($isReceive) {
-                    $cachedData['data']['fundingRateReceive'] += $fundingRateValue;
+                    $cachedData['data']['fundingRateReceive']['value'] += $fundingRateValue;
+                    $cachedData['data']['fundingRateReceive']['percentage'] += abs($fundingRate) * 100;
                 } else {
-                    $cachedData['data']['fundingRatePay'] += abs($fundingRateValue);
+                    $cachedData['data']['fundingRatePay']['value'] += abs($fundingRateValue);
+                    $cachedData['data']['fundingRatePay']['percentage'] += abs($fundingRate) * 100;
                 }
 
                 $cachedData['data']['totalFundingRate'] += abs($fundingRate) * 100;
 
                 $cachedData['data']['timeArray'][] = [
                     'datetime' => $startTime,
+                    'priceCurrentFuture' => round($priceBtcFuture, 2),
                     'funding_rate' => $fundingRate,
-                    'fundingRatePay' => $isReceive ? 0 : $fundingRateValue,
-                    'fundingRateReceive' => $isReceive ? $fundingRateValue : 0
+                    'fundingRatePay' => !$isReceive ? ['value' => $fundingRateValue, 'percentage' => abs($fundingRate) * 100] : ['value' => 0, 'percentage' => 0],
+                    'fundingRateReceive' => $isReceive ? ['value' => $fundingRateValue, 'percentage' => abs($fundingRate) * 100] : ['value' => 0, 'percentage' => 0]
                 ];
 
                 Cache::put($cacheKey, $cachedData);
@@ -911,9 +901,8 @@ class CoinCallController extends Controller
         return [
             'priceBtcSpot' => $cachedData['priceBtcSpot'],
             'priceBtcFuture' => $cachedData['priceBtcFuture'],
-            'priceFutureWithFeeTaker' => $cachedData['priceFutureWithFeeTaker'],
-            'priceFutureWithFeeMaker' => $cachedData['priceFutureWithFeeMaker'],
             'data' => $cachedData['data'],
         ];
     }
+
 }
