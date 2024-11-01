@@ -860,11 +860,11 @@ class CoinCallController extends Controller
                     $futureData = $this->getInstrumentsFuture();
                     $priceBtcFuture = $futureData['data'][0]['ask'];
 
-                    $custFeeTaker = round($priceBtcFuture * 0.0062, 2);
-                    $custFeeMaker = round($priceBtcFuture * 0.0043, 2);
+                    $custFeeTaker = number_format($priceBtcFuture * 0.0062, 2);
+                    $custFeeMaker = number_format($priceBtcFuture * 0.0043, 2);
 
-                    $cachedData['priceBtcSpot'] = round($priceBtcSpot, 2);
-                    $cachedData['priceBtcFuture'] = round($priceBtcFuture, 2);
+                    $cachedData['priceBtcSpot'] = $priceBtcSpot;
+                    $cachedData['priceBtcFuture'] = $priceBtcFuture;
                     $cachedData['data']['custFeeTaker']['value'] = $custFeeTaker;
                     $cachedData['data']['custFeeMaker']['value'] = $custFeeMaker;
                 }
@@ -873,25 +873,31 @@ class CoinCallController extends Controller
                 $priceBtcFuture = $futureData['data'][0]['ask'];
 
                 $fundingRate = $futureData['data'][0]['funding_rate'];
-                $fundingRateValue = round($priceBtcFuture * $fundingRate, 2);
+                $fundingRateValue = $priceBtcFuture * $fundingRate;
                 $isReceive = $fundingRate > 0;
 
                 if ($isReceive) {
-                    $cachedData['data']['fundingRateReceive']['value'] += $fundingRateValue;
-                    $cachedData['data']['fundingRateReceive']['percentage'] += abs($fundingRate) * 100;
+                    $cachedData['data']['fundingRateReceive']['value'] = number_format($cachedData['data']['fundingRateReceive']['value'] + $fundingRateValue, 2);
+                    $cachedData['data']['fundingRateReceive']['percentage'] = number_format($cachedData['data']['fundingRateReceive']['percentage'] + abs($fundingRate) * 100, 2);
                 } else {
-                    $cachedData['data']['fundingRatePay']['value'] += abs($fundingRateValue);
-                    $cachedData['data']['fundingRatePay']['percentage'] += abs($fundingRate) * 100;
+                    $cachedData['data']['fundingRatePay']['value'] = number_format($cachedData['data']['fundingRatePay']['value'] + abs($fundingRateValue), 2);
+                    $cachedData['data']['fundingRatePay']['percentage'] = number_format($cachedData['data']['fundingRatePay']['percentage'] + abs($fundingRate) * 100, 2);
                 }
 
-                $cachedData['data']['totalFundingRate'] += abs($fundingRate) * 100;
+                $cachedData['data']['totalFundingRate'] = number_format($cachedData['data']['totalFundingRate'] + abs($fundingRate) * 100, 2);
 
                 $cachedData['data']['timeArray'][] = [
                     'datetime' => $startTime,
-                    'priceCurrentFuture' => round($priceBtcFuture, 2),
+                    'priceCurrentFuture' => $priceBtcFuture,
                     'funding_rate' => $fundingRate,
-                    'fundingRatePay' => !$isReceive ? ['value' => $fundingRateValue, 'percentage' => abs($fundingRate) * 100] : ['value' => 0, 'percentage' => 0],
-                    'fundingRateReceive' => $isReceive ? ['value' => $fundingRateValue, 'percentage' => abs($fundingRate) * 100] : ['value' => 0, 'percentage' => 0]
+                    'fundingRatePay' => [
+                        'value' => !$isReceive ? number_format($fundingRateValue, 2) : 0,
+                        'percentage' => !$isReceive ? number_format(abs($fundingRate) * 100, 2) : 0
+                    ],
+                    'fundingRateReceive' => [
+                        'value' => $isReceive ? number_format($fundingRateValue, 2) : 0,
+                        'percentage' => $isReceive ? number_format(abs($fundingRate) * 100, 2) : 0
+                    ]
                 ];
 
                 Cache::put($cacheKey, $cachedData);
@@ -904,5 +910,4 @@ class CoinCallController extends Controller
             'data' => $cachedData['data'],
         ];
     }
-
 }
