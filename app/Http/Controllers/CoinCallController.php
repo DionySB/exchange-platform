@@ -873,7 +873,7 @@ class CoinCallController extends Controller
                 $priceBtcFuture = $futureData['data'][0]['ask'];
 
                 $fundingRate = $futureData['data'][0]['funding_rate'];
-                $fundingRateValue = round($cachedData['priceBtcFuture'] * $fundingRate, 2);
+                $fundingRateValue = round($priceBtcFuture * $fundingRate, 2);
                 $isReceive = $fundingRate > 0;
 
                 if ($isReceive) {
