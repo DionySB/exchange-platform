@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -841,9 +840,9 @@ class CoinCallController extends Controller
             [$start, $end] = $currentInterval;
 
             foreach ($cachedData['data']['timeArray'] as $timeEntry) {
-                $entryTime = \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $timeEntry['datetime']);
-                $entryHour = $entryTime->hour;
-                $entryDate = $entryTime->format('d-m-Y');
+                $timestamp = strtotime($timeEntry['datetime']);
+                $entryHour = (int) date('H', $timestamp);
+                $entryDate = date('d-m-Y', $timestamp);
 
                 if ($entryDate === $currentDate &&
                     (($start <= $entryHour && $entryHour <= $end) || ($start > $end && ($entryHour >= $start || $entryHour <= $end)))) {
