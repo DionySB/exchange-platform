@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Support\Facades\Log;
 
 class CoinCallController extends Controller
 {
@@ -726,32 +726,35 @@ class CoinCallController extends Controller
         $positiveOptionsData = [];
         foreach ($strikes as $strike => $options) {
             foreach ($options as $optionName => $data) {
-                $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null;
-                $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null;
+                $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null; // Atribui null caso não tenha price.
+                $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null; // Atribui null caso não tenha price.
 
-                // Calcula a diferença para saber o lucro da operação.
-                $diffOptions = $sellOptionPrice - $buyOptionPrice;
-                $gainValue = round($diffOptions - ($price - $strike), 2);
+                // Caso seja null um das variáveis cruciais para o cálculo, é enviado um email com o optionName que deu erro.
+                if ($buyOptionPrice !== null && $sellOptionPrice !== null) {
+                    $diffOptions = $sellOptionPrice - $buyOptionPrice;
+                    $gainValue = round($diffOptions - ($price - $strike), 2);
 
-                if ($gainValue > 0) {
-                    // Calcula a porcentagem de ganho da OP
-                    $percentageOP = round(($gainValue / $price) * 100);
+                    if ($gainValue > 0) {
+                        // Executa o cálculo e armazena os dados se houver ganho
+                        $percentageOP = round(($gainValue / $price) * 100);
+                        $operationRate = round($price * 0.00325, 2);
+                        $gainWithFee = round($gainValue - $operationRate, 2);
 
-                    // Desconto de taxas pagas para realizar a operação
-                    $operationRate = round($price * 0.00325, 2);
-                    $gainWithFee = round($gainValue - $operationRate, 2);
+                        $positiveOptionsData[] = [
+                            'strike' => $strike,
+                            'optionName' => $optionName,
+                            'buyOptionPrice' => $buyOptionPrice,
+                            'sellOptionPrice' => $sellOptionPrice,
+                            'diffOptions' => $diffOptions,
+                            'gainValue' => $gainValue, // Ganho da operação
+                            'spreadPercent' => $percentageOP, // Porcentagem de ganho da OP
+                            'gainWithFee' => $gainWithFee, // Ganho da operação descontando taxa
+                        ];
+                    }
+                } else {
+                    Send::EmailError("não foi possível pegar o orderbook da CoinaCall no algoritmo GetSpreadOp ($optionName)");
+                    // Log::warning("não foi possível pegar o orderbook da CoinaCall no algoritmo GetSpreadOp ($optionName)");
 
-                    $itemData = [
-                        'strike' => $strike,
-                        'optionName' => $optionName,
-                        'buyOptionPrice' => $buyOptionPrice,
-                        'sellOptionPrice' => $sellOptionPrice,
-                        'diffOptions' => $diffOptions,
-                        'gainValue' => $gainValue, // Ganho da operação
-                        'spreadPercent' => $percentageOP, // Porcentagem de ganho da OP
-                        'gainWithFee' => $gainWithFee, // Ganho da operação descontando taxa
-                    ];
-                    $positiveOptionsData[] = $itemData;
                 }
             }
         }
