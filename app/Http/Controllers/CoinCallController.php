@@ -796,7 +796,7 @@ class CoinCallController extends Controller
         return $dataRates;
     }
 
-    public function getFutureFundingRate()
+    public function getFutureFundingRate($crypto = 'BTC')
     {
         $cacheKey = 'funding_data';
         $now = now()->timezone('America/Sao_Paulo');
@@ -818,7 +818,8 @@ class CoinCallController extends Controller
                 'custFeeMaker' => ['value' => 0, 'percentage' => 0.43],
                 'totalFundingRate' => 0,
                 'timeArray' => [],
-                'startTime' => $startTime
+                'crypto' => $crypto . '-USD',
+                'startTime' => $startTime,
             ]
         ]);
 
@@ -857,6 +858,10 @@ class CoinCallController extends Controller
                     $priceBtcSpot = $spotData['data']['a']['0']['0'];
 
                     $futureData = $this->getInstrumentsFuture();
+                    $futureData = array_filter($futureData['data'], function($instrument) use ($crypto) {
+                        return $instrument['ticker_id'] == $crypto . '-USD';
+                    });
+                    $futureData = ['data' => array_values($futureData)];
                     $priceBtcFuture = $futureData['data'][0]['ask'];
 
                     $custFeeTaker = number_format($priceBtcFuture * 0.0062, 2);
@@ -869,6 +874,10 @@ class CoinCallController extends Controller
                 }
 
                 $futureData = $this->getInstrumentsFuture();
+                $futureData = array_filter($futureData['data'], function($instrument) use ($crypto) {
+                    return $instrument['ticker_id'] == $crypto . '-USD';
+                });
+                $futureData = ['data' => array_values($futureData)];
                 $priceBtcFuture = $futureData['data'][0]['ask'];
 
                 $fundingRate = $futureData['data'][0]['funding_rate'];
