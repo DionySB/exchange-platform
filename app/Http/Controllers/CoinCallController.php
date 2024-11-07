@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class CoinCallController extends Controller
 {
@@ -729,7 +728,7 @@ class CoinCallController extends Controller
                 $buyOptionPrice = !empty($data['P']) ? (float)($data['P'][0]['price'] ?? 0) : null; // Atribui null caso não tenha price.
                 $sellOptionPrice = !empty($data['C']) ? (float)($data['C'][0]['price'] ?? 0) : null; // Atribui null caso não tenha price.
 
-                // Caso seja null um das variáveis cruciais para o cálculo, é enviado um email com o optionName que deu erro.
+                // Caso seja null uma das variáveis cruciais para o cálculo, é enviado um email com o optionName que deu erro.
                 if ($buyOptionPrice !== null && $sellOptionPrice !== null) {
                     $diffOptions = $sellOptionPrice - $buyOptionPrice;
                     $gainValue = round($diffOptions - ($price - $strike), 2);
