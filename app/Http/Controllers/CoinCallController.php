@@ -57,7 +57,6 @@ class CoinCallController extends Controller
         return json_decode($response, true);
     }
 
-
     /* User Account Related Functions */
 
     public function getAccountInfo()
@@ -93,6 +92,35 @@ class CoinCallController extends Controller
 
         return $response;
     }
+
+    public function getAvailableBalance()
+    {
+        $uri = '/open/account/summary/v1';
+        $response = $this->apiRequest('GET', $uri);
+        $discount = 50000;
+        $accounts = [
+            'totalBtcValue' => $response['data']['totalBtcValue'],
+            'totalDollarValue' => $response['data']['totalDollarValue'],
+            'totalUsdtValue' => $response['data']['totalUsdtValue'],
+            'totalUSDWithdiscount' => ($response['data']['totalUsdtValue'] - $discount),
+            'accounts' => []
+        ];
+
+        foreach ($response['data']['accounts'] as $account) {
+            $accountId = $account['accountId'];
+            if($accountId != null){
+                $accounts['accounts'][$accountId] = [
+                    'btcValue' => $account['btcValue'],
+                    'dollarValue' => $account['dollarValue'],
+                    'usdtValue' => $account['usdtValue'],
+                ];
+            }
+        }
+
+        return $accounts;
+    }
+
+
 
     /* Public Endpoints */
 
@@ -661,6 +689,19 @@ class CoinCallController extends Controller
         return $response;
     }
 
+    public function getFundingRateDetailsFuture($startTime = null, $endTime = null, $pageSize = 20)
+    {
+        $uri = "/open/settle/future/record/v1";
+        $params = [
+            'symbol' => 'BTCUSD',
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'pageSize' => $pageSize
+        ];
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
     /* WebSocket  Options */
     public function getOrderBook()
     {
@@ -751,7 +792,7 @@ class CoinCallController extends Controller
                         ];
                     }
                 } else {
-                    Send::EmailError("não foi possível pegar o orderbook da CoinaCall no algoritmo GetSpreadOp ($optionName)");
+                    // Send::EmailError("não foi possível pegar o orderbook da CoinaCall no algoritmo GetSpreadOp ($optionName)");
                     // Log::warning("não foi possível pegar o orderbook da CoinaCall no algoritmo GetSpreadOp ($optionName)");
 
                 }
