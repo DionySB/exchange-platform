@@ -108,7 +108,7 @@ class CoinCallController extends Controller
 
         foreach ($response['data']['accounts'] as $account) {
             $accountId = $account['accountId'];
-            if($accountId != null){
+            if($accountId !== null){
                 $accounts['accounts'][$accountId] = [
                     'btcValue' => $account['btcValue'],
                     'dollarValue' => $account['dollarValue'],
