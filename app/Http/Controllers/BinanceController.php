@@ -14,7 +14,7 @@ class BinanceController extends Controller
 
         $params['timestamp'] = $timestamp;
         $params['recvWindow'] = $recvWindow;
-        $params = array_filter($params, fn($value) => !is_null($value)); // Remove null values
+        $params = array_filter($params, fn($value) => !is_null($value));
         $queryString = http_build_query($params);
         $signature = hash_hmac('sha256', $queryString, $secretKey);
         $url = "https://testnet.binance.vision{$uri}?signature={$signature}";
@@ -32,7 +32,6 @@ class BinanceController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
-        // Envia os parâmetros de acordo com o método
         if ($method === 'GET') {
             curl_setopt($curl, CURLOPT_URL, $url . "&" . $queryString);
         } else {
@@ -40,6 +39,8 @@ class BinanceController extends Controller
         }
 
         $response = curl_exec($curl);
+        curl_close($curl);
+
         dd([
             'response' => $response,
             'url' => $url,
@@ -47,8 +48,16 @@ class BinanceController extends Controller
             'queryString' => $queryString,
             'timestamp' => $timestamp,
         ]);
-        curl_close($curl);
 
         return json_decode($response, true);
+    }
+
+    public function getAccountInfo()
+    {
+        $uri = '/api/v3/account';
+
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
     }
 }
