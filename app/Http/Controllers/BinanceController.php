@@ -163,4 +163,17 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Query Order (USER_DATA) */
+    public function getQueryOrder($symbol, $paramType = '', $id = '')
+    {
+        $params = [
+            'symbol' => $symbol,
+            $paramType => $id         //Requer $paramType (order, origClientOrder) + id.
+        ];
+        $uri = '/api/v3/order';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
 }
