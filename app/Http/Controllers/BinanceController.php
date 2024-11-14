@@ -122,4 +122,34 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Cancel Order (TRADE) */
+    public function cancelOrderSpot(array $dados) {
+
+        if (empty($dados['orderId']) && empty($dados['origClientOrderId']) && empty($dados['cancelRestrictions'])) {
+            return [
+                'success' => false,
+                'message' => 'Mandatorio cancelRestrictions e origClientOrderId ou orderId.'
+            ];
+        }
+         if(!in_array($dados['cancelRestrictions'], ['ONLY_NEW', 'ONLY_PARTIALLY_FILLED', 'PARTIALLY_FILLED'])){
+            return [
+                'success' => false,
+                'message' => 'cancelRestrictions deve ser ONLY_NEW, ONLY_PARTIALLY_FILLED OR PARTIALLY_FILLED.'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'orderId' => $dados['orderId'] ?? null,
+            'origClientOrderId' => $dados['origClientOrderId'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+            'cancelRestrictions' => $dados['cancelRestrictions']
+        ];
+
+
+        $params = array_filter($params);
+        $uri = '/api/v3/order';
+        return $this->apiRequest('DELETE', $uri, $params, true);
+    }
 }
