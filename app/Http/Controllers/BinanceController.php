@@ -125,7 +125,6 @@ class BinanceController extends Controller
 
     /* Cancel Order (TRADE) */
     public function cancelOrderSpot(array $dados) {
-
         if (empty($dados['orderId']) && empty($dados['origClientOrderId']) && empty($dados['cancelRestrictions'])) {
             return [
                 'success' => false,
@@ -151,5 +150,17 @@ class BinanceController extends Controller
         $params = array_filter($params);
         $uri = '/api/v3/order';
         return $this->apiRequest('DELETE', $uri, $params, true);
+    }
+
+    /* Cancel all Open Orders on a Symbol (TRADE) */
+    public function cancelOpenOrdersWithSymbol($symbol)
+    {
+        $uri = '/api/v3/openOrders';
+        $params = [
+            'symbol' => $symbol
+        ];
+        $response = $this->apiRequest('DELETE', $uri, $params);
+
+        return $response;
     }
 }
