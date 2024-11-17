@@ -332,4 +332,20 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* All Orders (USER_DATA) */
+    public function getAllOrdersSpot($symbol ='LTCUSDT', $orderId=null, $startTime = null, $endTime = null, $limit = 500)
+    {
+        $uri = '/api/v3/allOrders';
+        $params = [
+            'symbol' => $symbol,
+            'orderId' => $orderId,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'limit' => $limit
+        ];
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
 }
