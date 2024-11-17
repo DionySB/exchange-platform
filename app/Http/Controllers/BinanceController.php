@@ -815,4 +815,13 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Query Open Order lists (USER_DATA) */
+    public function getQueryOpenOrderLists()
+    {
+        $uri = '/api/v3/openOrderList';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
 }
