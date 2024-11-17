@@ -176,4 +176,148 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Cancel an Existing Order and Send a New Order (TRADE) */
+    public function cancelAndReplace()
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'side' => 'SELL', // 'BUY' ou 'SELL'
+            'type' => 'LIMIT', // 'LIMIT', 'MARKET', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'
+            'cancelReplaceMode' => 'STOP_ON_FAILURE', // 'STOP_ON_FAILURE' ou 'ALLOW_FAILURE'
+            'quantity' => 1.00000,
+            'timeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
+            'price' => 90.0000000,
+            'quoteOrderQty' => null,
+            'stopPrice' => null,
+            'trailingDelta' => null,
+            'cancelNewClientOrderId' => null,
+            'cancelOrigClientOrderId' => null,
+            'cancelOrderId' => null,
+            'newClientOrderId' => null,
+            'strategyId' => null,
+            'strategyType' => null,
+            'icebergQty' => null,
+            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+            'cancelRestrictions' => null, // 'ONLY_NEW', 'ONLY_PARTIALLY_FILLED'
+            'orderRateLimitExceededMode' => null, // 'DO_NOTHING', 'CANCEL_ONLY'
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type']) || empty($dados['cancelReplaceMode'])) {
+            return [
+                'success' => false,
+                'message' => 'Os campos symbol, side, type e cancelReplaceMode são mandatórios.'
+            ];
+        }
+        if (!in_array($dados['cancelReplaceMode'], ['STOP_ON_FAILURE', 'ALLOW_FAILURE'])) {
+            return [
+                'success' => false,
+                'message' => 'cancelReplaceMode deve ser: STOP_ON_FAILURE, ALLOW_FAILURE.'
+            ];
+        }
+        if ($dados['type'] === 'LIMIT') {
+            if (empty($dados['quantity']) || empty($dados['price']) || empty($dados['timeInForce'])) {
+                return [
+                    'success' => false,
+                    'message' => 'LIMIT requer: quantity, price e timeInForce.'
+                ];
+            }
+        } elseif ($dados['type'] === 'MARKET') {
+            if (empty($dados['quantity']) && empty($dados['quoteOrderQty'])) {
+                return [
+                    'success' => false,
+                    'message' => 'MARKET requer: quantity ou quoteOrderQty.'
+                ];
+            }
+        } elseif (in_array($dados['type'], ['STOP_LOSS', 'TAKE_PROFIT'])) {
+            if (empty($dados['quantity']) || (empty($dados['stopPrice']) && empty($dados['trailingDelta']))) {
+                return [
+                    'success' => false,
+                    'message' => "{$dados['type']} requer: quantity e stopPrice ou trailingDelta."
+                ];
+            }
+        } elseif (in_array($dados['type'], ['STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'])) {
+            if (empty($dados['quantity']) || empty($dados['price']) || empty($dados['timeInForce']) || (empty($dados['stopPrice']) && empty($dados['trailingDelta']))) {
+                return [
+                    'success' => false,
+                    'message' => "{$dados['type']} requer: quantity, price, timeInForce e stopPrice ou trailingDelta."
+                ];
+            }
+        } elseif ($dados['type'] === 'LIMIT_MAKER') {
+            if (empty($dados['quantity']) || empty($dados['price'])) {
+                return [
+                    'success' => false,
+                    'message' => 'LIMIT_MAKER requer: quantity e price.'
+                ];
+            }
+        } else {
+            return [
+                'success' => false,
+                'message' => 'type inválido. Deve ser: LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER.'
+            ];
+        }
+        if (isset($dados['timeInForce']) && !in_array($dados['timeInForce'], ['GTC', 'FOK', 'IOC'])) {
+            return [
+                'success' => false,
+                'message' => 'timeInForce deve ser: GTC, FOK, IOC.'
+            ];
+        }
+
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
+        }
+
+        if (isset($dados['cancelRestrictions']) && !in_array($dados['cancelRestrictions'], ['ONLY_NEW', 'ONLY_PARTIALLY_FILLED'])) {
+            return [
+                'success' => false,
+                'message' => 'cancelRestrictions deve ser: ONLY_NEW, ONLY_PARTIALLY_FILLED.'
+            ];
+        }
+
+        if (isset($dados['orderRateLimitExceededMode']) && !in_array($dados['orderRateLimitExceededMode'], ['DO_NOTHING', 'CANCEL_ONLY'])) {
+            return [
+                'success' => false,
+                'message' => 'orderRateLimitExceededMode deve ser: DO_NOTHING, CANCEL_ONLY.'
+            ];
+        }
+
+        $uri = '/api/v3/order/cancelReplace';
+        $params = array_filter([
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'type' => $dados['type'],
+            'cancelReplaceMode' => $dados['cancelReplaceMode'],
+            'timeInForce' => $dados['timeInForce'] ?? null,
+            'quantity' => $dados['quantity'] ?? null,
+            'quoteOrderQty' => $dados['quoteOrderQty'] ?? null,
+            'price' => $dados['price'] ?? null,
+            'cancelNewClientOrderId' => $dados['cancelNewClientOrderId'] ?? null,
+            'cancelOrigClientOrderId' => $dados['cancelOrigClientOrderId'] ?? null,
+            'cancelOrderId' => $dados['cancelOrderId'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+            'strategyId' => $dados['strategyId'] ?? null,
+            'strategyType' => $dados['strategyType'] ?? null,
+            'stopPrice' => $dados['stopPrice'] ?? null,
+            'trailingDelta' => $dados['trailingDelta'] ?? null,
+            'icebergQty' => $dados['icebergQty'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+            'cancelRestrictions' => $dados['cancelRestrictions'] ?? null,
+            'orderRateLimitExceededMode' => $dados['orderRateLimitExceededMode'] ?? null,
+        ]);
+
+        $response = $this->apiRequest('POST', $uri, $params);
+        return $response;
+    }
 }
