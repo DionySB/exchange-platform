@@ -348,4 +348,85 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /*New OCO - Deprecated (TRADE) */
+    public function newOrderOCO(/*array $dados */) {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'side' => 'SELL', // 'BUY' ou 'SELL'
+            'quantity' => 1.00000,
+            'price' => 88.00,
+            'stopPrice' => 85.00,
+            'listClientOrderId' => null,
+            'limitClientOrderId' => null,
+            'limitStrategyId' => null,
+            'limitStrategyType' => null,
+            'limitIcebergQty' => null,
+            'trailingDelta' => null,
+            'stopClientOrderId' => null,
+            'stopStrategyId' => null,
+            'stopStrategyType' => null,
+            'stopLimitPrice' => null,
+            'stopIcebergQty' => null,
+            'stopLimitTimeInForce' => null, // 'GTC', 'FOK', 'IOC'
+            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['quantity']) || empty($dados['price']) || empty($dados['stopPrice'])) {
+            return [
+                'success' => false,
+                'message' => 'symbol, side, quantity, price, stopPrice são mandatórios.'
+            ];
+        }
+        if (!in_array($dados['side'], ['BUY', 'SELL'])) {
+            return [
+                'success' => false,
+                'message' => 'side deve ser: BUY ou SELL.'
+            ];
+        }
+        if (isset($dados['stopLimitTimeInForce']) && isset($dados['stopLimitPrice']) && !in_array($dados['stopLimitTimeInForce'], ['GTC', 'FOK', 'IOC'])) {
+            return [
+                'success' => false,
+                'message' => 'stopLimitTimeInForce deve ser: GTC, FOK, IOC quando stopLimitPrice existir.'
+            ];
+        }
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'quantity' => $dados['quantity'],
+            'price' => $dados['price'],
+            'stopPrice' => $dados['stopPrice'],
+            'listClientOrderId' => $dados['listClientOrderId'] ?? null,
+            'limitClientOrderId' => $dados['limitClientOrderId'] ?? null,
+            'limitStrategyId' => $dados['limitStrategyId'] ?? null,
+            'limitStrategyType' => $dados['limitStrategyType'] ?? null,
+            'limitIcebergQty' => $dados['limitIcebergQty'] ?? null,
+            'trailingDelta' => $dados['trailingDelta'] ?? null,
+            'stopClientOrderId' => $dados['stopClientOrderId'] ?? null,
+            'stopStrategyId' => $dados['stopStrategyId'] ?? null,
+            'stopStrategyType' => $dados['stopStrategyType'] ?? null,
+            'stopLimitPrice' => $dados['stopLimitPrice'] ?? null,
+            'stopIcebergQty' => $dados['stopIcebergQty'] ?? null,
+            'stopLimitTimeInForce' => $dados['stopLimitTimeInForce'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null
+        ];
+
+        $uri = '/api/v3/order/oco';
+        return $this->apiRequest('POST', $uri, $params);
+    }
 }
