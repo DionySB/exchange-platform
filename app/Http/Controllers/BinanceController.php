@@ -320,4 +320,16 @@ class BinanceController extends Controller
         $response = $this->apiRequest('POST', $uri, $params);
         return $response;
     }
+
+    /* Current Open Orders (USER_DATA) */
+    public function getOpenOrders($symbol)
+    {
+        $params = [
+            'symbol' => $symbol,
+        ];
+        $uri = '/api/v3/openOrders';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
 }
