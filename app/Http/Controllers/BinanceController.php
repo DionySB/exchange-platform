@@ -788,4 +788,16 @@ class BinanceController extends Controller
 
         return $this->apiRequest('DELETE', $uri, $params);
     }
+
+    /* Query Order lists (USER_DATA) */
+    public function getQueryOrderList($paramType = 'orderListId', $id = '')
+    {
+        $params = [
+            $paramType => $id         //Requer $paramType (order, origClientOrder) + id.
+        ];
+        $uri = '/api/v3/orderList';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
 }
