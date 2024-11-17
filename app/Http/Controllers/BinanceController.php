@@ -639,4 +639,124 @@ class BinanceController extends Controller
 
         return $this->apiRequest('POST', $uri, $params); // Faz a requisição à API
     }
+
+    public function newOrderListOTOCO(/*array $dados */)
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'listClientOrderId' => null,
+            'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESPONSE'
+            'selfTradePreventionMode' => null,
+            'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
+            'workingSide' => 'SELL',  // 'BUY', 'SELL'
+            'workingClientOrderId' => null,
+            'workingPrice' => 95.00000000,
+            'workingQuantity' => 1.0,
+            'workingIcebergQty' => null,
+            'workingTimeInForce' => 'GTC',  // 'GTC', 'IOC', 'FOK'
+            'workingStrategyId' => null,
+            'workingStrategyType' => null,
+            'pendingSide' => 'SELL',  // 'BUY', 'SELL'
+            'pendingQuantity' => 1.0,
+            'pendingAboveType' => 'LIMIT_MAKER',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
+            'pendingAboveClientOrderId' => null,
+            'pendingAbovePrice' => 74.00000000,
+            'pendingAboveStopPrice' => null,
+            'pendingAboveTrailingDelta' => null,
+            'pendingAboveIcebergQty' => null,
+            'pendingAboveTimeInForce' => null,  // 'GTC', 'FOK', 'IOC'
+            'pendingAboveStrategyId' => null,
+            'pendingAboveStrategyType' => null,
+            'pendingBelowType' => 'STOP_LOSS_LIMIT',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
+            'pendingBelowClientOrderId' => null,
+            'pendingBelowPrice' => 72.00000000,
+            'pendingBelowStopPrice' => 70.00000000,
+            'pendingBelowTrailingDelta' => null,
+            'pendingBelowIcebergQty' => null,
+            'pendingBelowTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
+            'pendingBelowStrategyId' => null,
+            'pendingBelowStrategyType' => null,
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['workingSide']) || empty($dados['workingPrice']) || empty($dados['workingQuantity']) || empty($dados['workingType'])) {
+            return [
+                'success' => false,
+                'message' => 'Campos obrigatórios ausentes: symbol, workingSide, workingPrice, workingQuantity, workingType.'
+            ];
+        }
+
+        if ($dados['workingType'] == 'LIMIT' && empty($dados['workingTimeInForce'])) {
+            return [
+                'success' => false,
+                'message' => 'Campo obrigatório ausente: workingTimeInForce (necessário para workingType = LIMIT).'
+            ];
+        }
+
+        if (in_array($dados['pendingAboveType'], ['LIMIT_MAKER', 'STOP_LOSS_LIMIT']) && empty($dados['pendingAbovePrice'])) {
+            return [
+                'success' => false,
+                'message' => 'Campo obrigatório ausente: pendingAbovePrice (necessário para pendingAboveType = LIMIT_MAKER ou STOP_LOSS_LIMIT).'
+            ];
+        }
+
+        if (in_array($dados['pendingAboveType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT']) && (empty($dados['pendingAboveStopPrice']) && empty($dados['pendingAboveTrailingDelta']))) {
+            return [
+                'success' => false,
+                'message' => 'Campo obrigatório ausente: pendingAboveStopPrice ou pendingAboveTrailingDelta (necessário para pendingAboveType = STOP_LOSS ou STOP_LOSS_LIMIT).'
+            ];
+        }
+
+        if (in_array($dados['pendingBelowType'], ['LIMIT_MAKER', 'STOP_LOSS_LIMIT']) && empty($dados['pendingBelowPrice'])) {
+            return [
+                'success' => false,
+                'message' => 'Campo obrigatório ausente: pendingBelowPrice (necessário para pendingBelowType = LIMIT_MAKER ou STOP_LOSS_LIMIT).'
+            ];
+        }
+
+        if (in_array($dados['pendingBelowType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT']) && (empty($dados['pendingBelowStopPrice']) && empty($dados['pendingBelowTrailingDelta']))) {
+            return [
+                'success' => false,
+                'message' => 'Campo obrigatório ausente: pendingBelowStopPrice ou pendingBelowTrailingDelta (necessário para pendingBelowType = STOP_LOSS ou STOP_LOSS_LIMIT).'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'listClientOrderId' => $dados['listClientOrderId'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+            'workingSide' => $dados['workingSide'],
+            'workingType' => $dados['workingType'],
+            'workingQuantity' => $dados['workingQuantity'],
+            'workingPrice' => $dados['workingPrice'],
+            'workingTimeInForce' => $dados['workingTimeInForce'] ?? null,
+            'workingStrategyId' => $dados['workingStrategyId'] ?? null,
+            'workingStrategyType' => $dados['workingStrategyType'] ?? null,
+            'workingClientOrderId' => $dados['workingClientOrderId'] ?? null,
+            'pendingSide' => $dados['pendingSide'],
+            'pendingQuantity' => $dados['pendingQuantity'],
+            'pendingAboveType' => $dados['pendingAboveType'],
+            'pendingAbovePrice' => $dados['pendingAbovePrice'] ?? null,
+            'pendingAboveStopPrice' => $dados['pendingAboveStopPrice'] ?? null,
+            'pendingAboveTrailingDelta' => $dados['pendingAboveTrailingDelta'] ?? null,
+            'pendingAboveIcebergQty' => $dados['pendingAboveIcebergQty'] ?? null,
+            'pendingAboveTimeInForce' => $dados['pendingAboveTimeInForce'] ?? null,
+            'pendingAboveStrategyId' => $dados['pendingAboveStrategyId'] ?? null,
+            'pendingAboveStrategyType' => $dados['pendingAboveStrategyType'] ?? null,
+            'pendingBelowType' => $dados['pendingBelowType'],
+            'pendingBelowPrice' => $dados['pendingBelowPrice'] ?? null,
+            'pendingBelowStopPrice' => $dados['pendingBelowStopPrice'] ?? null,
+            'pendingBelowTrailingDelta' => $dados['pendingBelowTrailingDelta'] ?? null,
+            'pendingBelowIcebergQty' => $dados['pendingBelowIcebergQty'] ?? null,
+            'pendingBelowTimeInForce' => $dados['pendingBelowTimeInForce'] ?? null,
+            'pendingBelowStrategyId' => $dados['pendingBelowStrategyId'] ?? null,
+            'pendingBelowStrategyType' => $dados['pendingBelowStrategyType'] ?? null,
+        ];
+
+        $uri = '/api/v3/orderList/otoco';
+
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
 }
