@@ -462,7 +462,7 @@ class BinanceController extends Controller
             empty($dados['aboveType']) || empty($dados['belowType'])) {
             return [
                 'success' => false,
-                'message' => 'Os campos obrigatórios são: symbol, side, quantity, aboveType e belowType.',
+                'message' => 'symbol, side, quantity, aboveType e belowType são obrigatórios.',
             ];
         }
 
@@ -537,5 +537,106 @@ class BinanceController extends Controller
 
         $response = $this->apiRequest('POST', $uri, $params);
         return $response;
+    }
+
+    public function newOrderListOTO(/*$dados */)
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'listClientOrderId' => null,
+            'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESULT'
+            'selfTradePreventionMode' => null,
+            'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
+            'workingSide' => 'SELL',  // 'BUY', 'SELL'
+            'workingClientOrderId' => null,
+            'workingPrice' => 85.00000000,
+            'workingQuantity' => 1.0,
+            'workingIcebergQty' => null,
+            'workingTimeInForce' => 'GTC',  // 'FOK', 'IOC', 'GTC'
+            'workingStrategyId' => null,
+            'workingStrategyType' => null,
+            'pendingType' => 'STOP_LOSS_LIMIT',  // 'LIMIT', 'STOP_LOSS', 'TAKE_PROFIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'
+            'pendingSide' => 'SELL',  // 'BUY', 'SELL'
+            'pendingClientOrderId' => null,
+            'pendingPrice' => 74.00000000,
+            'pendingStopPrice' => 75.00000000,
+            'pendingTrailingDelta' => null,
+            'pendingQuantity' => 1.0,
+            'pendingIcebergQty' => null,
+            'pendingTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
+            'pendingStrategyId' => null,
+            'pendingStrategyType' => null,
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['workingSide']) || empty($dados['workingQuantity']) || empty($dados['workingPrice']) || empty($dados['workingType']) || empty($dados['workingTimeInForce'])) {
+            return [
+                'success' => false,
+                'message' => 'Campos obrigatórios ausentes.'
+            ];
+        }
+
+        if (!in_array($dados['workingType'], ['LIMIT', 'LIMIT_MAKER'])) {
+            return [
+                'success' => false,
+                'message' => 'workingType deve ser: LIMIT ou LIMIT_MAKER.'
+            ];
+        }
+
+        if (!in_array($dados['workingSide'], ['BUY', 'SELL'])) {
+            return [
+                'success' => false,
+                'message' => 'workingSide deve ser: BUY ou SELL.'
+            ];
+        }
+
+        if (in_array($dados['pendingType'], ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'])) {
+            if (empty($dados['pendingPrice']) || empty($dados['pendingTimeInForce'])) {
+                return [
+                    'success' => false,
+                    'message' => 'pendingPrice e pendingTimeInForce são obrigatórios para tipos LIMIT, STOP_LOSS_LIMIT ou TAKE_PROFIT_LIMIT.'
+                ];
+            }
+        }
+
+        if (in_array($dados['pendingType'], ['STOP_LOSS', 'TAKE_PROFIT'])) {
+            if (empty($dados['pendingStopPrice']) && empty($dados['pendingTrailingDelta'])) {
+                return [
+                    'success' => false,
+                    'message' => 'pendingStopPrice ou pendingTrailingDelta são obrigatórios para tipos STOP_LOSS ou TAKE_PROFIT.'
+                ];
+            }
+        }
+
+        if (empty($dados['pendingQuantity'])) {
+            return [
+                'success' => false,
+                'message' => 'pendingQuantity é obrigatório.'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'listClientOrderId' => $dados['listClientOrderId'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+
+            'workingSide' => $dados['workingSide'],                            // BUY ou SELL
+            'workingType' => $dados['workingType'],                            // LIMIT ou LIMIT_MAKER
+            'workingQuantity' => $dados['workingQuantity'],
+            'workingPrice' => $dados['workingPrice'],
+            'workingTimeInForce' => $dados['workingTimeInForce'],
+
+            'pendingSide' => $dados['pendingSide'],                            // BUY ou SELL
+            'pendingType' => $dados['pendingType'],                            // STOP_LOSS_LIMIT, STOP_LOSS, etc.
+            'pendingQuantity' => $dados['pendingQuantity'],
+            'pendingPrice' => $dados['pendingPrice'] ?? null,                 // Necessário se a ordem for LIMIT
+            'pendingStopPrice' => $dados['pendingStopPrice'] ?? null,         // Necessário para STOP_LOSS_LIMIT
+            'pendingTrailingDelta' => $dados['pendingTrailingDelta'] ?? null, // Necessário para Trailing Stop
+            'pendingTimeInForce' => $dados['pendingTimeInForce'] ?? null,     // Necessário para LIMIT ou STOP_LOSS_LIMIT
+        ];
+
+        $uri = '/api/v3/orderList/oto';
+
+        return $this->apiRequest('POST', $uri, $params); // Faz a requisição à API
     }
 }
