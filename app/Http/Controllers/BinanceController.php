@@ -824,4 +824,70 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* New order using SOR (TRADE) */
+    public function newOrderSOR()
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'side' => 'SELL',
+            'type' => 'LIMIT',
+            'quantity' => 1,
+            'price' => 85.00,
+            'timeInForce' => 'GTC',
+            'newClientOrderId' => 'uniqueOrder123',
+            'strategyId' => 1000001,
+            'strategyType' => 1000002,
+            'icebergQty' => 0.5,
+            'newOrderRespType' => 'FULL', // ACK, RESULT, or FULL. Default to FULL
+            'selfTradePreventionMode' => 'EXPIRE_MAKER', //EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE
+            'recvWindow' => 50000,
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type']) || empty($dados['quantity'])) {
+            return [
+                'success' => false,
+                'message' => 'Parâmetros obrigatórios ausentes: symbol, side, type, quantity e timestamp.'
+            ];
+        }
+
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
+        }
+
+        if(isset($dados['icebergQty']) && $dados['type'] !== 'LIMIT') {
+            return [
+                'success' => false,
+                'message' => 'icebergQty apenas para LIMIT'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'type' => $dados['type'],
+            'quantity' => $dados['quantity'],
+            'price' => $dados['price'] ?? null,
+            'timeInForce' => $dados['timeInForce'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+            'strategyId' => $dados['strategyId'] ?? null,
+            'strategyType' => $dados['strategyType'] ?? null,
+            'icebergQty' => $dados['icebergQty'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'],
+        ];
+
+        $uri = '/api/v3/order';
+        return $this->apiRequest('POST', $uri, $params);
+    }
 }
