@@ -759,4 +759,33 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Cancel Order lists (TRADE) */
+    public function cancelOrderList(/* array $dados */)
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'orderListId' => '4391',
+            'newClientOrderId' => null,
+            'newClientOrderId' => '111111'
+        ];
+
+        if (empty($dados['symbol']) || (empty($dados['orderListId']) && empty($dados['listClientOrderId']))) {
+            return [
+                'success' => false,
+                'message' => 'Symbol é obrigatório, e deve ao menos ter orderListId ou listClientOrderId'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'orderListId' => $dados['orderListId'] ?? null,
+            'listClientOrderId' => $dados['listClientOrderId'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+        ];
+
+        $uri = '/api/v3/orderList';
+
+        return $this->apiRequest('DELETE', $uri, $params);
+    }
 }
