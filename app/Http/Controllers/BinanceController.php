@@ -429,4 +429,113 @@ class BinanceController extends Controller
         $uri = '/api/v3/order/oco';
         return $this->apiRequest('POST', $uri, $params);
     }
+
+    public function newOrderListOCO(/* array $dados */)
+    {
+        $dados = [
+            'symbol' => 'LTCUSDT',
+            'side' => 'SELL', // 'BUY' ou 'SELL'
+            'quantity' => 1,
+            'aboveType' => 'LIMIT_MAKER', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
+            'aboveClientOrderId' => 'above123',
+            'aboveIcebergQty' => null,
+            'abovePrice' => 95.00000000,
+            'aboveStopPrice' => null,
+            'aboveTrailingDelta' => null,
+            'aboveTimeInForce' => null,
+            'aboveStrategyId' => null,
+            'aboveStrategyType' => null,
+            'belowType' => 'STOP_LOSS_LIMIT', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
+            'belowClientOrderId' => 'below123',
+            'belowIcebergQty' => null,
+            'belowPrice' => 74.00000000,
+            'belowStopPrice' => 80.00000000,
+            'belowTrailingDelta' => null,
+            'belowTimeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
+            'belowStrategyId' => null,
+            'belowStrategyType' => null,
+            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+        ];
+
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['quantity']) ||
+            empty($dados['aboveType']) || empty($dados['belowType'])) {
+            return [
+                'success' => false,
+                'message' => 'Os campos obrigatórios são: symbol, side, quantity, aboveType e belowType.',
+            ];
+        }
+
+        if ($dados['aboveType'] !== 'LIMIT_MAKER' && $dados['belowType'] !== 'LIMIT_MAKER') {
+            return [
+                'success' => false,
+                'message' => 'Pelo menos uma das pernas (aboveType ou belowType) deve ser LIMIT_MAKER.',
+            ];
+        }
+
+        if (empty($dados['abovePrice']) || empty($dados['belowStopPrice']) || empty($dados['belowPrice'])) {
+            return [
+                'success' => false,
+                'message' => 'abovePrice, belowStopPrice e belowPrice são obrigatórios.',
+            ];
+        }
+
+        if ($dados['belowType'] === 'STOP_LOSS_LIMIT' && empty($dados['belowTimeInForce'])) {
+            return [
+                'success' => false,
+                'message' => ' belowTimeInForce é obrigatório quando belowType for STOP_LOSS_LIMIT.',
+            ];
+        }
+
+        if (!in_array($dados['side'], ['BUY', 'SELL'])) {
+            return [
+                'success' => false,
+                'message' => 'side deve ser: BUY ou SELL.'
+            ];
+        }
+
+        if (isset($dados['stopLimitTimeInForce']) && isset($dados['stopLimitPrice']) && !in_array($dados['stopLimitTimeInForce'], ['GTC', 'FOK', 'IOC'])) {
+            return [
+                'success' => false,
+                'message' => 'stopLimitTimeInForce deve ser: GTC, FOK, IOC quando stopLimitPrice existir.'
+            ];
+        }
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
+        }
+
+        $params = [
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'quantity' => $dados['quantity'],
+            'aboveType' => $dados['aboveType'],
+            'abovePrice' => $dados['abovePrice'] ?? null,
+            'aboveStopPrice' => $dados['aboveStopPrice'] ?? null,
+            'aboveTrailingDelta' => $dados['aboveTrailingDelta'] ?? null,
+            'aboveTimeInForce' => $dados['aboveTimeInForce'] ?? null,
+            'aboveClientOrderId' => $dados['aboveClientOrderId'] ?? null,
+            'belowType' => $dados['belowType'],
+            'belowPrice' => $dados['belowPrice'] ?? null,
+            'belowStopPrice' => $dados['belowStopPrice'] ?? null,
+            'belowTrailingDelta' => $dados['belowTrailingDelta'] ?? null,
+            'belowTimeInForce' => $dados['belowTimeInForce'] ?? 'GTC',
+            'belowClientOrderId' => $dados['belowClientOrderId'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+        ];
+
+        $uri = '/api/v3/orderList/oco';
+
+        $response = $this->apiRequest('POST', $uri, $params);
+        return $response;
+    }
 }
