@@ -334,7 +334,7 @@ class BinanceController extends Controller
     }
 
     /* All Orders (USER_DATA) */
-    public function getAllOrdersSpot($symbol ='LTCUSDT', $orderId=null, $startTime = null, $endTime = null, $limit = 500)
+    public function getAllOrdersSpot($symbol ='', $orderId=null, $startTime = null, $endTime = null, $limit = 500)
     {
         $uri = '/api/v3/allOrders';
         $params = [
@@ -350,7 +350,7 @@ class BinanceController extends Controller
     }
 
     /*New OCO - Deprecated (TRADE) */
-    public function newOrderOCO(/*array $dados */) {
+    public function newOrderOCO(array $dados) {
         $dados = [
             'symbol' => 'LTCUSDT',
             'side' => 'SELL', // 'BUY' ou 'SELL'
@@ -430,7 +430,8 @@ class BinanceController extends Controller
         return $this->apiRequest('POST', $uri, $params);
     }
 
-    public function newOrderListOCO(/* array $dados */)
+    /* New Order List - OCO (TRADE) */
+    public function newOrderListOCO(array $dados)
     {
         $dados = [
             'symbol' => 'LTCUSDT',
@@ -539,7 +540,8 @@ class BinanceController extends Controller
         return $response;
     }
 
-    public function newOrderListOTO(/*$dados */)
+    /* New Order List - OTO (TRADE) */
+    public function newOrderListOTO(array $dados)
     {
         $dados = [
             'symbol' => 'LTCUSDT',
@@ -620,19 +622,18 @@ class BinanceController extends Controller
             'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
             'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
 
-            'workingSide' => $dados['workingSide'],                            // BUY ou SELL
-            'workingType' => $dados['workingType'],                            // LIMIT ou LIMIT_MAKER
+            'workingSide' => $dados['workingSide'],
+            'workingType' => $dados['workingType'],
             'workingQuantity' => $dados['workingQuantity'],
             'workingPrice' => $dados['workingPrice'],
             'workingTimeInForce' => $dados['workingTimeInForce'],
-
-            'pendingSide' => $dados['pendingSide'],                            // BUY ou SELL
-            'pendingType' => $dados['pendingType'],                            // STOP_LOSS_LIMIT, STOP_LOSS, etc.
+            'pendingSide' => $dados['pendingSide'],
+            'pendingType' => $dados['pendingType'],
             'pendingQuantity' => $dados['pendingQuantity'],
-            'pendingPrice' => $dados['pendingPrice'] ?? null,                 // Necessário se a ordem for LIMIT
-            'pendingStopPrice' => $dados['pendingStopPrice'] ?? null,         // Necessário para STOP_LOSS_LIMIT
-            'pendingTrailingDelta' => $dados['pendingTrailingDelta'] ?? null, // Necessário para Trailing Stop
-            'pendingTimeInForce' => $dados['pendingTimeInForce'] ?? null,     // Necessário para LIMIT ou STOP_LOSS_LIMIT
+            'pendingPrice' => $dados['pendingPrice'] ?? null,
+            'pendingStopPrice' => $dados['pendingStopPrice'] ?? null,
+            'pendingTrailingDelta' => $dados['pendingTrailingDelta'] ?? null,
+            'pendingTimeInForce' => $dados['pendingTimeInForce'] ?? null,
         ];
 
         $uri = '/api/v3/orderList/oto';
@@ -761,7 +762,7 @@ class BinanceController extends Controller
     }
 
     /* Cancel Order lists (TRADE) */
-    public function cancelOrderList(/* array $dados */)
+    public function cancelOrderList(array $dados)
     {
         $dados = [
             'symbol' => 'LTCUSDT',
