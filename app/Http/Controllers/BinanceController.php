@@ -800,4 +800,19 @@ class BinanceController extends Controller
 
         return $response;
     }
+
+    /* Query all Order lists (USER_DATA) */
+    public function getQueryAllOrderLists($fromId = null, $startTime = null, $endTime = null, $limit = 500)
+    {
+        $params = [
+            'fromId' => $fromId,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'limit' => $limit
+        ];
+        $uri = '/api/v3/allOrderList';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
 }
