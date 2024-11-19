@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 class BinanceController extends Controller
 {
-
     private function apiRequest($method, $uri, $params = [])
     {
         $apiKey = env('BINANCE_API_KEY');
@@ -44,22 +43,32 @@ class BinanceController extends Controller
         return json_decode($response, true);
     }
 
-    public function getAccountInfo()
+    public function newOrder(array $dados)
     {
-        $uri = '/api/v3/account';
+        /*
+            $dados = [
+                'symbol' => 'BTCUSDT',
+                'side' => 'BUY', // 'BUY' ou 'SELL'
+                'type' => 'LIMIT', // 'LIMIT', 'MARKET', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'
+                'timeInForce' => 'GTC',
+                'quantity' => '1.00000',
+                // 'quoteOrderQty' => '100.00',
+                'price' => '91979.98000000',
+                // 'newClientOrderId' => 'teste',
+                // 'strategyId' => 0,
+                // 'strategyType' => 1000000,
+                // 'stopPrice' => '74.0000',
+                // 'trailingDelta' => 10,
+                // 'icebergQty' => '0.50000',
+                // 'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+                // 'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
 
-        $response = $this->apiRequest('GET', $uri);
-
-        return $response;
-    }
-
-    public function newOrder( array $dados)
-    {
-        $uri = '/api/v3/order';
-        if(empty($dados['symbol']) && empty($dados['side']) && empty($dados['type'])){
+            ];
+        */
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type'])) {
             return [
                 'success' => false,
-                'message' => 'Os campos symbol, side e type sao obrigatorios.'
+                'message' => 'Os campos symbol, side e type são obrigatórios.'
             ];
         }
 
@@ -67,37 +76,86 @@ class BinanceController extends Controller
             if (empty($dados['timeInForce']) || empty($dados['quantity']) || empty($dados['price'])) {
                 return [
                     'success' => false,
-                    'message' => 'Para ordens LIMIT, os campos timeInForce, quantity e price são obrigatórios.'
+                    'message' => 'LIMIT: timeInForce, quantity e price são obrigatórios.'
                 ];
             }
         } elseif ($dados['type'] === 'MARKET') {
             if (empty($dados['quantity']) && empty($dados['quoteOrderQty'])) {
                 return [
                     'success' => false,
-                    'message' => 'MARKET, requer quantity ou quoteOrderQty.'
+                    'message' => 'MARKET:  quantity ou quoteOrderQty.'
                 ];
             }
-        } elseif ($dados['type'] === 'STOP_LOSS' || $dados['type'] === 'TAKE_PROFIT') {
+            if (isset($dados['quantity']) && isset($dados['quoteOrderQty'])) {
+                return [
+                    'success' => false,
+                    'message' => 'MARKET: apenas quantity ou quoteOrderQty.'
+                ];
+            }
+        } elseif (in_array($dados['type'], ['STOP_LOSS', 'TAKE_PROFIT'])) {
             if (empty($dados['quantity']) || (empty($dados['stopPrice']) && empty($dados['trailingDelta']))) {
                 return [
                     'success' => false,
-                    'message' => 'STOP_LOSS e TAKE_PROFIT, requer quantity e stopPrice ou trailingDelta.'
+                    'message' => 'STOP_LOSS e TAKE_PROFIT requerem quantity e stopPrice ou trailingDelta.'
                 ];
             }
-        } elseif ($dados['type'] === 'STOP_LOSS_LIMIT' || $dados['type'] === 'TAKE_PROFIT_LIMIT') {
+        } elseif (in_array($dados['type'], ['STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'])) {
             if (empty($dados['timeInForce']) || empty($dados['quantity']) || empty($dados['price']) || (empty($dados['stopPrice']) && empty($dados['trailingDelta']))) {
                 return [
                     'success' => false,
-                    'message' => 'STOP_LOSS_LIMIT e TAKE_PROFIT_LIMIT requer timeInForce, quantity, price e stopPrice ou trailingDelta.'
+                    'message' => 'STOP_LOSS_LIMIT e TAKE_PROFIT_LIMIT requerem timeInForce, quantity, price e stopPrice ou trailingDelta.'
                 ];
             }
         } elseif ($dados['type'] === 'LIMIT_MAKER') {
             if (empty($dados['quantity']) || empty($dados['price'])) {
                 return [
                     'success' => false,
-                    'message' => 'LIMIT_MAKER, requer quantity e price.'
+                    'message' => 'LIMIT_MAKER requer quantity e price.'
                 ];
             }
+        }
+
+        if (isset($dados['icebergQty'])) {
+            if (!in_array($dados['type'], ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'])) {
+                return [
+                    'success' => false,
+                    'message' => 'icebergQty pode ser usado apenas com LIMIT, STOP_LOSS_LIMIT, TAKE_PROFIT_LIMIT.'
+                ];
+            }
+            if ($dados['timeInForce'] !== 'GTC') {
+                return [
+                    'success' => false,
+                    'message' => 'icebergQty exige timeInForce "GTC".'
+                ];
+            }
+        }
+
+        if (isset($dados['strategyType']) && $dados['strategyType'] < 1000000) {
+            return [
+                'success' => false,
+                'message' => 'strategyType deve ser maior ou igual a 1000000.'
+            ];
+        }
+
+        if (isset($dados['timeInForce']) && !in_array($dados['timeInForce'], ['GTC', 'FOK', 'IOC'])) {
+            return [
+                'success' => false,
+                'message' => 'timeInForce deve ser: GTC, FOK, IOC.'
+            ];
+        }
+
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
         }
 
         $params = [
@@ -118,6 +176,7 @@ class BinanceController extends Controller
             'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
         ];
 
+        $uri = '/api/v3/order';
         $response = $this->apiRequest('POST', $uri, $params);
 
         return $response;
@@ -178,32 +237,33 @@ class BinanceController extends Controller
     }
 
     /* Cancel an Existing Order and Send a New Order (TRADE) */
-    public function cancelAndReplace()
+    public function cancelAndReplace(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'side' => 'SELL', // 'BUY' ou 'SELL'
-            'type' => 'LIMIT', // 'LIMIT', 'MARKET', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'
-            'cancelReplaceMode' => 'STOP_ON_FAILURE', // 'STOP_ON_FAILURE' ou 'ALLOW_FAILURE'
-            'quantity' => 1.00000,
-            'timeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
-            'price' => 90.0000000,
-            'quoteOrderQty' => null,
-            'stopPrice' => null,
-            'trailingDelta' => null,
-            'cancelNewClientOrderId' => null,
-            'cancelOrigClientOrderId' => null,
-            'cancelOrderId' => null,
-            'newClientOrderId' => null,
-            'strategyId' => null,
-            'strategyType' => null,
-            'icebergQty' => null,
-            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
-            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
-            'cancelRestrictions' => null, // 'ONLY_NEW', 'ONLY_PARTIALLY_FILLED'
-            'orderRateLimitExceededMode' => null, // 'DO_NOTHING', 'CANCEL_ONLY'
-        ];
-
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'side' => 'SELL', // 'BUY' ou 'SELL'
+                'type' => 'LIMIT', // 'LIMIT', 'MARKET', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'
+                'cancelReplaceMode' => 'STOP_ON_FAILURE', // 'STOP_ON_FAILURE' ou 'ALLOW_FAILURE'
+                'quantity' => 1.00000,
+                'timeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
+                'price' => 90.0000000,
+                'quoteOrderQty' => null,
+                'stopPrice' => null,
+                'trailingDelta' => null,
+                'cancelNewClientOrderId' => null,
+                'cancelOrigClientOrderId' => null,
+                'cancelOrderId' => null,
+                'newClientOrderId' => null,
+                'strategyId' => null,
+                'strategyType' => null,
+                'icebergQty' => null,
+                'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+                'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+                'cancelRestrictions' => null, // 'ONLY_NEW', 'ONLY_PARTIALLY_FILLED'
+                'orderRateLimitExceededMode' => null, // 'DO_NOTHING', 'CANCEL_ONLY'
+            ];
+        */
         if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type']) || empty($dados['cancelReplaceMode'])) {
             return [
                 'success' => false,
@@ -241,7 +301,7 @@ class BinanceController extends Controller
             if (empty($dados['quantity']) || empty($dados['price']) || empty($dados['timeInForce']) || (empty($dados['stopPrice']) && empty($dados['trailingDelta']))) {
                 return [
                     'success' => false,
-                    'message' => "{$dados['type']} requer: quantity, price, timeInForce e stopPrice ou trailingDelta."
+                    'message' => "quantity, price, timeInForce e stopPrice ou trailingDelta são requeridos para este type."
                 ];
             }
         } elseif ($dados['type'] === 'LIMIT_MAKER') {
@@ -251,12 +311,15 @@ class BinanceController extends Controller
                     'message' => 'LIMIT_MAKER requer: quantity e price.'
                 ];
             }
-        } else {
+        }
+
+        if (isset($dados['strategyType']) && $dados['strategyType'] < 1000000) {
             return [
                 'success' => false,
-                'message' => 'type inválido. Deve ser: LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER.'
+                'message' => 'strategyType deve ser maior ou igual a 1000000.'
             ];
         }
+
         if (isset($dados['timeInForce']) && !in_array($dados['timeInForce'], ['GTC', 'FOK', 'IOC'])) {
             return [
                 'success' => false,
@@ -350,29 +413,31 @@ class BinanceController extends Controller
     }
 
     /*New OCO - Deprecated (TRADE) */
-    public function newOrderOCO(array $dados) {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'side' => 'SELL', // 'BUY' ou 'SELL'
-            'quantity' => 1.00000,
-            'price' => 88.00,
-            'stopPrice' => 85.00,
-            'listClientOrderId' => null,
-            'limitClientOrderId' => null,
-            'limitStrategyId' => null,
-            'limitStrategyType' => null,
-            'limitIcebergQty' => null,
-            'trailingDelta' => null,
-            'stopClientOrderId' => null,
-            'stopStrategyId' => null,
-            'stopStrategyType' => null,
-            'stopLimitPrice' => null,
-            'stopIcebergQty' => null,
-            'stopLimitTimeInForce' => null, // 'GTC', 'FOK', 'IOC'
-            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
-            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
-        ];
-
+    public function newOrderOCO(array $dados)
+    {
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'side' => 'SELL', // 'BUY' ou 'SELL'
+                'quantity' => 1.00000,
+                'price' => 88.00,
+                'stopPrice' => 85.00,
+                'listClientOrderId' => null,
+                'limitClientOrderId' => null,
+                'limitStrategyId' => null,
+                'limitStrategyType' => null,
+                'limitIcebergQty' => null,
+                'trailingDelta' => null,
+                'stopClientOrderId' => null,
+                'stopStrategyId' => null,
+                'stopStrategyType' => null,
+                'stopLimitPrice' => null,
+                'stopIcebergQty' => null,
+                'stopLimitTimeInForce' => null, // 'GTC', 'FOK', 'IOC'
+                'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+                'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+            ];
+        */
         if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['quantity']) || empty($dados['price']) || empty($dados['stopPrice'])) {
             return [
                 'success' => false,
@@ -385,7 +450,7 @@ class BinanceController extends Controller
                 'message' => 'side deve ser: BUY ou SELL.'
             ];
         }
-        if (isset($dados['stopLimitTimeInForce']) && isset($dados['stopLimitPrice']) && !in_array($dados['stopLimitTimeInForce'], ['GTC', 'FOK', 'IOC'])) {
+        if (isset($dados['stopLimitPrice']) && !in_array($dados['stopLimitTimeInForce'], ['GTC', 'FOK', 'IOC'])) {
             return [
                 'success' => false,
                 'message' => 'stopLimitTimeInForce deve ser: GTC, FOK, IOC quando stopLimitPrice existir.'
@@ -404,6 +469,19 @@ class BinanceController extends Controller
             ];
         }
 
+        if (isset($dados['limitStrategyType']) && $dados['limitStrategyType'] < 1000000) {
+            return [
+                'success' => false,
+                'message' => 'limitStrategyType deve ser maior ou igual a 1000000.'
+            ];
+        }
+
+        if (isset($dados['stopStrategyType']) && $dados['stopStrategyType'] < 1000000) {
+            return [
+                'success' => false,
+                'message' => 'stopStrategyType deve ser maior ou igual a 1000000.'
+            ];
+        }
         $params = [
             'symbol' => $dados['symbol'],
             'side' => $dados['side'],
@@ -433,32 +511,33 @@ class BinanceController extends Controller
     /* New Order List - OCO (TRADE) */
     public function newOrderListOCO(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'side' => 'SELL', // 'BUY' ou 'SELL'
-            'quantity' => 1,
-            'aboveType' => 'LIMIT_MAKER', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
-            'aboveClientOrderId' => 'above123',
-            'aboveIcebergQty' => null,
-            'abovePrice' => 95.00000000,
-            'aboveStopPrice' => null,
-            'aboveTrailingDelta' => null,
-            'aboveTimeInForce' => null,
-            'aboveStrategyId' => null,
-            'aboveStrategyType' => null,
-            'belowType' => 'STOP_LOSS_LIMIT', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
-            'belowClientOrderId' => 'below123',
-            'belowIcebergQty' => null,
-            'belowPrice' => 74.00000000,
-            'belowStopPrice' => 80.00000000,
-            'belowTrailingDelta' => null,
-            'belowTimeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
-            'belowStrategyId' => null,
-            'belowStrategyType' => null,
-            'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
-            'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
-        ];
-
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'side' => 'SELL', // 'BUY' ou 'SELL'
+                'quantity' => 1,
+                'aboveType' => 'LIMIT_MAKER', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
+                'aboveClientOrderId' => 'above123',
+                'aboveIcebergQty' => null,
+                'abovePrice' => 95.00000000,
+                'aboveStopPrice' => null,
+                'aboveTrailingDelta' => null,
+                'aboveTimeInForce' => null,
+                'aboveStrategyId' => null,
+                'aboveStrategyType' => null,
+                'belowType' => 'STOP_LOSS_LIMIT', // 'STOP_LOSS_LIMIT', 'STOP_LOSS', 'LIMIT_MAKER'
+                'belowClientOrderId' => 'below123',
+                'belowIcebergQty' => null,
+                'belowPrice' => 74.00000000,
+                'belowStopPrice' => 80.00000000,
+                'belowTrailingDelta' => null,
+                'belowTimeInForce' => 'GTC', // 'GTC', 'FOK', 'IOC'
+                'belowStrategyId' => null,
+                'belowStrategyType' => null,
+                'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+                'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+            ];
+        */
         if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['quantity']) ||
             empty($dados['aboveType']) || empty($dados['belowType'])) {
             return [
@@ -481,10 +560,45 @@ class BinanceController extends Controller
             ];
         }
 
+        if (empty($dados['aboveStopPrice']) && empty($dados['aboveTrailingDelta'])) {
+            return [
+                'success' => false,
+                'message' => 'aboveStopPrice ou aboveTrailingDelta deve ser especificado.'
+            ];
+        }
+
+        if (isset($dados['aboveStopPrice']) && !in_array($dados['aboveType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT'])) {
+            return [
+                'success' => false,
+                'message' => 'aboveStopPrice é usado quando for STOP_LOSS ou STOP_LOSS_LIMIT.'
+            ];
+        }
+
+        if (empty($dados['belowStopPrice']) && empty($dados['belowTrailingDelta'])) {
+            return [
+                'success' => false,
+                'message' => 'belowStopPrice ou belowTrailingDelta deve ser especificado.'
+            ];
+        }
+
+        if (isset($dados['belowStopPrice']) && !in_array($dados['belowType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT'])) {
+            return [
+                'success' => false,
+                'message' => 'belowStopPrice é usado quando for STOP_LOSS ou STOP_LOSS_LIMIT.'
+            ];
+        }
+
         if ($dados['belowType'] === 'STOP_LOSS_LIMIT' && empty($dados['belowTimeInForce'])) {
             return [
                 'success' => false,
                 'message' => ' belowTimeInForce é obrigatório quando belowType for STOP_LOSS_LIMIT.',
+            ];
+        }
+
+        if($dados['aboveType'] === 'STOP_LOSS_LIMIT' && empty($dados['aboveTimeInForce'])) {
+            return [
+                'success' => false,
+                'message' => ' aboveTimeInForce é obrigatório quando aboveType for STOP_LOSS_LIMIT.',
             ];
         }
 
@@ -495,12 +609,6 @@ class BinanceController extends Controller
             ];
         }
 
-        if (isset($dados['stopLimitTimeInForce']) && isset($dados['stopLimitPrice']) && !in_array($dados['stopLimitTimeInForce'], ['GTC', 'FOK', 'IOC'])) {
-            return [
-                'success' => false,
-                'message' => 'stopLimitTimeInForce deve ser: GTC, FOK, IOC quando stopLimitPrice existir.'
-            ];
-        }
         if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
             return [
                 'success' => false,
@@ -518,18 +626,24 @@ class BinanceController extends Controller
             'symbol' => $dados['symbol'],
             'side' => $dados['side'],
             'quantity' => $dados['quantity'],
+            'aboveClientOrderId' => $dados['aboveClientOrderId'],
+            'aboveIcebergQty' => $dados['aboveIcebergQty'],
             'aboveType' => $dados['aboveType'],
             'abovePrice' => $dados['abovePrice'] ?? null,
             'aboveStopPrice' => $dados['aboveStopPrice'] ?? null,
             'aboveTrailingDelta' => $dados['aboveTrailingDelta'] ?? null,
+            'aboveStrategyId' => $dados['aboveStrategyId'] ?? null,
+            'aboveStrategyType' =>  $dados['aboveStrategyType'] ?? null,
             'aboveTimeInForce' => $dados['aboveTimeInForce'] ?? null,
-            'aboveClientOrderId' => $dados['aboveClientOrderId'] ?? null,
             'belowType' => $dados['belowType'],
             'belowPrice' => $dados['belowPrice'] ?? null,
             'belowStopPrice' => $dados['belowStopPrice'] ?? null,
+            'belowIcebergQty' => $dados['belowIcebergQty'] ?? null,
             'belowTrailingDelta' => $dados['belowTrailingDelta'] ?? null,
-            'belowTimeInForce' => $dados['belowTimeInForce'] ?? 'GTC',
+            'belowTimeInForce' => $dados['belowTimeInForce'] ?? null,
             'belowClientOrderId' => $dados['belowClientOrderId'] ?? null,
+            'belowStrategyId' => $dados['belowStrategyId'] ?? null,
+            'belowStrategyType' => $dados['belowStrategyType'] ?? null,
             'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
             'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
         ];
@@ -543,37 +657,38 @@ class BinanceController extends Controller
     /* New Order List - OTO (TRADE) */
     public function newOrderListOTO(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'listClientOrderId' => null,
-            'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESULT'
-            'selfTradePreventionMode' => null,
-            'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
-            'workingSide' => 'SELL',  // 'BUY', 'SELL'
-            'workingClientOrderId' => null,
-            'workingPrice' => 85.00000000,
-            'workingQuantity' => 1.0,
-            'workingIcebergQty' => null,
-            'workingTimeInForce' => 'GTC',  // 'FOK', 'IOC', 'GTC'
-            'workingStrategyId' => null,
-            'workingStrategyType' => null,
-            'pendingType' => 'STOP_LOSS_LIMIT',  // 'LIMIT', 'STOP_LOSS', 'TAKE_PROFIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'
-            'pendingSide' => 'SELL',  // 'BUY', 'SELL'
-            'pendingClientOrderId' => null,
-            'pendingPrice' => 74.00000000,
-            'pendingStopPrice' => 75.00000000,
-            'pendingTrailingDelta' => null,
-            'pendingQuantity' => 1.0,
-            'pendingIcebergQty' => null,
-            'pendingTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
-            'pendingStrategyId' => null,
-            'pendingStrategyType' => null,
-        ];
-
-        if (empty($dados['symbol']) || empty($dados['workingSide']) || empty($dados['workingQuantity']) || empty($dados['workingPrice']) || empty($dados['workingType']) || empty($dados['workingTimeInForce'])) {
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'listClientOrderId' => null,
+                'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESULT'
+                'selfTradePreventionMode' => null,
+                'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
+                'workingSide' => 'SELL',  // 'BUY', 'SELL'
+                'workingClientOrderId' => null,
+                'workingPrice' => 85.00000000,
+                'workingQuantity' => 1.0,
+                'workingIcebergQty' => null,
+                'workingTimeInForce' => 'GTC',  // 'FOK', 'IOC', 'GTC'
+                'workingStrategyId' => null,
+                'workingStrategyType' => null,
+                'pendingType' => 'STOP_LOSS_LIMIT',  // 'LIMIT', 'STOP_LOSS', 'TAKE_PROFIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'
+                'pendingSide' => 'SELL',  // 'BUY', 'SELL'
+                'pendingClientOrderId' => null,
+                'pendingPrice' => 74.00000000,
+                'pendingStopPrice' => 75.00000000,
+                'pendingTrailingDelta' => null,
+                'pendingQuantity' => 1.0,
+                'pendingIcebergQty' => null,
+                'pendingTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
+                'pendingStrategyId' => null,
+                'pendingStrategyType' => null,
+            ];
+        */
+        if (empty($dados['symbol']) || empty($dados['workingSide']) || empty($dados['workingQuantity']) || empty($dados['workingPrice']) || empty($dados['workingType']) || empty($dados['workingTimeInForce']) || empty($dados['pendingQuantity'])) {
             return [
                 'success' => false,
-                'message' => 'Campos obrigatórios ausentes.'
+                'message' => 'Campos symbol, workingSide, workingQuantity, workingPrice, workingType, workingTimeInForce e pendingQuantity mandatórios.'
             ];
         }
 
@@ -609,10 +724,31 @@ class BinanceController extends Controller
             }
         }
 
-        if (empty($dados['pendingQuantity'])) {
+        if (isset($dados['workingIcebergQty']) && !($dados['workingTimeInForce'] === 'GTC' || $dados['workingType'] === 'LIMIT_MAKER')) {
             return [
                 'success' => false,
-                'message' => 'pendingQuantity é obrigatório.'
+                'message' => 'workingIcebergQty pode ser usado apenas quando workingTimeInForce for GTC ou workingType for LIMIT_MAKER.'
+            ];
+        }
+
+        if (isset($dados['pendingIcebergQty']) && !($dados['pendingTimeInForce'] === 'GTC' || $dados['pendingType'] === 'LIMIT_MAKER')) {
+            return [
+                'success' => false,
+                'message' => 'pendingIcebergQty pode ser usado apenas quando pendingTimeInForce for GTC ou pendingType for LIMIT_MAKER.'
+            ];
+        }
+
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
             ];
         }
 
@@ -621,19 +757,26 @@ class BinanceController extends Controller
             'listClientOrderId' => $dados['listClientOrderId'] ?? null,
             'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
             'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
-
             'workingSide' => $dados['workingSide'],
             'workingType' => $dados['workingType'],
-            'workingQuantity' => $dados['workingQuantity'],
+            'workingClientOrderId' => $dados['workingClientOrderId'] ?? null,
             'workingPrice' => $dados['workingPrice'],
-            'workingTimeInForce' => $dados['workingTimeInForce'],
+            'workingQuantity' => $dados['workingQuantity'],
+            'workingIcebergQty' => $dados['workingIcebergQty'] ?? null,
+            'workingTimeInForce' => $dados['workingTimeInForce'] ?? null,
+            'workingStrategyId' => $dados['workingStrategyId'] ?? null,
+            'workingStrategyType' => $dados['workingStrategyType'] ?? null,
             'pendingSide' => $dados['pendingSide'],
             'pendingType' => $dados['pendingType'],
-            'pendingQuantity' => $dados['pendingQuantity'],
+            'pendingClientOrderId' => $dados['pendingClientOrderId'] ?? null,
             'pendingPrice' => $dados['pendingPrice'] ?? null,
             'pendingStopPrice' => $dados['pendingStopPrice'] ?? null,
             'pendingTrailingDelta' => $dados['pendingTrailingDelta'] ?? null,
+            'pendingQuantity' => $dados['pendingQuantity'],
+            'pendingIcebergQty' => $dados['pendingIcebergQty'] ?? null,
             'pendingTimeInForce' => $dados['pendingTimeInForce'] ?? null,
+            'pendingStrategyId' => $dados['pendingStrategyId'] ?? null,
+            'pendingStrategyType' => $dados['pendingStrategyType'] ?? null,
         ];
 
         $uri = '/api/v3/orderList/oto';
@@ -641,83 +784,105 @@ class BinanceController extends Controller
         return $this->apiRequest('POST', $uri, $params); // Faz a requisição à API
     }
 
-    public function newOrderListOTOCO(/*array $dados */)
+    public function newOrderListOTOCO(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'listClientOrderId' => null,
-            'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESPONSE'
-            'selfTradePreventionMode' => null,
-            'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
-            'workingSide' => 'SELL',  // 'BUY', 'SELL'
-            'workingClientOrderId' => null,
-            'workingPrice' => 95.00000000,
-            'workingQuantity' => 1.0,
-            'workingIcebergQty' => null,
-            'workingTimeInForce' => 'GTC',  // 'GTC', 'IOC', 'FOK'
-            'workingStrategyId' => null,
-            'workingStrategyType' => null,
-            'pendingSide' => 'SELL',  // 'BUY', 'SELL'
-            'pendingQuantity' => 1.0,
-            'pendingAboveType' => 'LIMIT_MAKER',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
-            'pendingAboveClientOrderId' => null,
-            'pendingAbovePrice' => 74.00000000,
-            'pendingAboveStopPrice' => null,
-            'pendingAboveTrailingDelta' => null,
-            'pendingAboveIcebergQty' => null,
-            'pendingAboveTimeInForce' => null,  // 'GTC', 'FOK', 'IOC'
-            'pendingAboveStrategyId' => null,
-            'pendingAboveStrategyType' => null,
-            'pendingBelowType' => 'STOP_LOSS_LIMIT',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
-            'pendingBelowClientOrderId' => null,
-            'pendingBelowPrice' => 72.00000000,
-            'pendingBelowStopPrice' => 70.00000000,
-            'pendingBelowTrailingDelta' => null,
-            'pendingBelowIcebergQty' => null,
-            'pendingBelowTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
-            'pendingBelowStrategyId' => null,
-            'pendingBelowStrategyType' => null,
-        ];
-
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'listClientOrderId' => null,
+                'newOrderRespType' => null,  // 'ACK', 'FULL', 'RESPONSE'
+                'selfTradePreventionMode' => null,
+                'workingType' => 'LIMIT',  // 'LIMIT', 'LIMIT_MAKER'
+                'workingSide' => 'SELL',  // 'BUY', 'SELL'
+                'workingClientOrderId' => null,
+                'workingPrice' => 95.00000000,
+                'workingQuantity' => 1.0,
+                'workingIcebergQty' => null,
+                'workingTimeInForce' => 'GTC',  // 'GTC', 'IOC', 'FOK'
+                'workingStrategyId' => null,
+                'workingStrategyType' => null,
+                'pendingSide' => 'SELL',  // 'BUY', 'SELL'
+                'pendingQuantity' => 1.0,
+                'pendingAboveType' => 'LIMIT_MAKER',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
+                'pendingAboveClientOrderId' => null,
+                'pendingAbovePrice' => 74.00000000,
+                'pendingAboveStopPrice' => null,
+                'pendingAboveTrailingDelta' => null,
+                'pendingAboveIcebergQty' => null,
+                'pendingAboveTimeInForce' => null,  // 'GTC', 'FOK', 'IOC'
+                'pendingAboveStrategyId' => null,
+                'pendingAboveStrategyType' => null,
+                'pendingBelowType' => 'STOP_LOSS_LIMIT',  // 'LIMIT_MAKER', 'STOP_LOSS', 'STOP_LOSS_LIMIT'
+                'pendingBelowClientOrderId' => null,
+                'pendingBelowPrice' => 72.00000000,
+                'pendingBelowStopPrice' => 70.00000000,
+                'pendingBelowTrailingDelta' => null,
+                'pendingBelowIcebergQty' => null,
+                'pendingBelowTimeInForce' => 'GTC',  // 'GTC', 'FOK', 'IOC'
+                'pendingBelowStrategyId' => null,
+                'pendingBelowStrategyType' => null,
+            ];
+        */
         if (empty($dados['symbol']) || empty($dados['workingSide']) || empty($dados['workingPrice']) || empty($dados['workingQuantity']) || empty($dados['workingType'])) {
             return [
                 'success' => false,
-                'message' => 'Campos obrigatórios ausentes: symbol, workingSide, workingPrice, workingQuantity, workingType.'
+                'message' => 'symbol, workingSide, workingPrice, workingQuantity, workingType são mandatórios.'
             ];
         }
 
         if ($dados['workingType'] == 'LIMIT' && empty($dados['workingTimeInForce'])) {
             return [
                 'success' => false,
-                'message' => 'Campo obrigatório ausente: workingTimeInForce (necessário para workingType = LIMIT).'
+                'message' => 'workingTimeInForce (necessário para workingType = LIMIT).'
             ];
         }
 
         if (in_array($dados['pendingAboveType'], ['LIMIT_MAKER', 'STOP_LOSS_LIMIT']) && empty($dados['pendingAbovePrice'])) {
             return [
                 'success' => false,
-                'message' => 'Campo obrigatório ausente: pendingAbovePrice (necessário para pendingAboveType = LIMIT_MAKER ou STOP_LOSS_LIMIT).'
+                'message' => 'pendingAbovePrice é obrigatório quando pendingAboveType for LIMIT_MAKER ou STOP_LOSS_LIMIT.'
             ];
         }
 
         if (in_array($dados['pendingAboveType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT']) && (empty($dados['pendingAboveStopPrice']) && empty($dados['pendingAboveTrailingDelta']))) {
             return [
                 'success' => false,
-                'message' => 'Campo obrigatório ausente: pendingAboveStopPrice ou pendingAboveTrailingDelta (necessário para pendingAboveType = STOP_LOSS ou STOP_LOSS_LIMIT).'
+                'message' => 'pendingAboveStopPrice ou pendingAboveTrailingDelta são obrigatórios quando pendingAboveType for STOP_LOSS ou STOP_LOSS_LIMIT.'
             ];
         }
 
         if (in_array($dados['pendingBelowType'], ['LIMIT_MAKER', 'STOP_LOSS_LIMIT']) && empty($dados['pendingBelowPrice'])) {
             return [
                 'success' => false,
-                'message' => 'Campo obrigatório ausente: pendingBelowPrice (necessário para pendingBelowType = LIMIT_MAKER ou STOP_LOSS_LIMIT).'
+                'message' => 'pendingBelowPrice é obrigatório quando pendingBelowType for LIMIT_MAKER ou STOP_LOSS_LIMIT.'
             ];
         }
 
         if (in_array($dados['pendingBelowType'], ['STOP_LOSS', 'STOP_LOSS_LIMIT']) && (empty($dados['pendingBelowStopPrice']) && empty($dados['pendingBelowTrailingDelta']))) {
             return [
                 'success' => false,
-                'message' => 'Campo obrigatório ausente: pendingBelowStopPrice ou pendingBelowTrailingDelta (necessário para pendingBelowType = STOP_LOSS ou STOP_LOSS_LIMIT).'
+                'message' => 'pendingBelowStopPrice ou pendingBelowTrailingDelta são obrigatórios quando pendingBelowType for STOP_LOSS ou STOP_LOSS_LIMIT.'
+            ];
+        }
+
+        if (isset($dados['workingIcebergQty']) && !($dados['workingTimeInForce'] === 'GTC' || $dados['workingType'] === 'LIMIT_MAKER')) {
+            return [
+                'success' => false,
+                'message' => 'workingIcebergQty pode ser usado apenas quando workingTimeInForce for GTC ou workingType for LIMIT_MAKER.'
+            ];
+        }
+
+        if (isset($dados['pendingAboveIcebergQty']) && !($dados['pendingAboveTimeInForce'] === 'GTC' || $dados['pendingAboveType'] === 'LIMIT_MAKER')) {
+            return [
+                'success' => false,
+                'message' => 'pendingAboveTimeInForce: GTC ou pendingAboveType: LIMIT_MAKER para pendingAboveIcebergQty'
+            ];
+        }
+
+        if (isset($dados['pendingBelowIcebergQty']) && !($dados['pendingBelowTimeInForce'] === 'GTC' || $dados['pendingBelowType'] === 'LIMIT_MAKER')) {
+            return [
+                'success' => false,
+                'message' => 'pendingBelowTimeInForce: GTC ou pendingBelowType: LIMIT_MAKER para pendingBelowIcebergQty'
             ];
         }
 
@@ -740,7 +905,7 @@ class BinanceController extends Controller
             'pendingAbovePrice' => $dados['pendingAbovePrice'] ?? null,
             'pendingAboveStopPrice' => $dados['pendingAboveStopPrice'] ?? null,
             'pendingAboveTrailingDelta' => $dados['pendingAboveTrailingDelta'] ?? null,
-            'pendingAboveIcebergQty' => $dados['pendingAboveIcebergQty'] ?? null,
+            'pendingAboveIcebergQty' => isset($dados['pendingAboveIcebergQty']) ? $dados['pendingAboveIcebergQty'] : null,
             'pendingAboveTimeInForce' => $dados['pendingAboveTimeInForce'] ?? null,
             'pendingAboveStrategyId' => $dados['pendingAboveStrategyId'] ?? null,
             'pendingAboveStrategyType' => $dados['pendingAboveStrategyType'] ?? null,
@@ -748,7 +913,7 @@ class BinanceController extends Controller
             'pendingBelowPrice' => $dados['pendingBelowPrice'] ?? null,
             'pendingBelowStopPrice' => $dados['pendingBelowStopPrice'] ?? null,
             'pendingBelowTrailingDelta' => $dados['pendingBelowTrailingDelta'] ?? null,
-            'pendingBelowIcebergQty' => $dados['pendingBelowIcebergQty'] ?? null,
+            'pendingBelowIcebergQty' => isset($dados['pendingBelowIcebergQty']) ? $dados['pendingBelowIcebergQty'] : null,
             'pendingBelowTimeInForce' => $dados['pendingBelowTimeInForce'] ?? null,
             'pendingBelowStrategyId' => $dados['pendingBelowStrategyId'] ?? null,
             'pendingBelowStrategyType' => $dados['pendingBelowStrategyType'] ?? null,
@@ -764,12 +929,14 @@ class BinanceController extends Controller
     /* Cancel Order lists (TRADE) */
     public function cancelOrderList(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'orderListId' => '4391',
-            'newClientOrderId' => null,
-            'newClientOrderId' => '111111'
-        ];
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'orderListId' => '4391',
+                'newClientOrderId' => null,
+                'newClientOrderId' => '111111'
+            ];
+        */
 
         if (empty($dados['symbol']) || (empty($dados['orderListId']) && empty($dados['listClientOrderId']))) {
             return [
@@ -827,28 +994,29 @@ class BinanceController extends Controller
     }
 
     /* New order using SOR (TRADE) */
-    public function newOrderSOR()
+    public function newOrderSOR(array $dados)
     {
-        $dados = [
-            'symbol' => 'LTCUSDT',
-            'side' => 'SELL',
-            'type' => 'LIMIT',
-            'quantity' => 1,
-            'price' => 85.00,
-            'timeInForce' => 'GTC',
-            'newClientOrderId' => 'uniqueOrder123',
-            'strategyId' => 1000001,
-            'strategyType' => 1000002,
-            'icebergQty' => 0.5,
-            'newOrderRespType' => 'FULL', // ACK, RESULT, or FULL. Default to FULL
-            'selfTradePreventionMode' => 'EXPIRE_MAKER', //EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE
-            'recvWindow' => 50000,
-        ];
-
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'side' => 'SELL',
+                'type' => 'LIMIT',
+                'quantity' => 1,
+                'price' => 85.00,
+                'timeInForce' => 'GTC',
+                'newClientOrderId' => 'uniqueOrder123',
+                'strategyId' => 1000001,
+                'strategyType' => 1000002,
+                'icebergQty' => 0.5,
+                'newOrderRespType' => 'FULL', // ACK, RESULT, or FULL. Default to FULL
+                'selfTradePreventionMode' => 'EXPIRE_MAKER', //EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE
+                'recvWindow' => 50000,
+            ];
+        */
         if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type']) || empty($dados['quantity'])) {
             return [
                 'success' => false,
-                'message' => 'Parâmetros obrigatórios ausentes: symbol, side, type, quantity e timestamp.'
+                'message' => 'Parâmetros obrigatórios ausentes: symbol, side, type, quantity.'
             ];
         }
 
@@ -873,6 +1041,13 @@ class BinanceController extends Controller
             ];
         }
 
+        if($dados['type'] === 'LIMIT' && !in_array($dados['timeInForce'], ['GTC', 'FOK', 'IOC'])) {
+            return [
+                'success' => false,
+                'message' => 'timeInForce deve ser: GTC, FOK ou IOC'
+            ];
+        }
+
         $params = [
             'symbol' => $dados['symbol'],
             'side' => $dados['side'],
@@ -889,6 +1064,129 @@ class BinanceController extends Controller
         ];
 
         $uri = '/api/v3/order';
+        return $this->apiRequest('POST', $uri, $params);
+    }
+
+    public function testNewOrder(array $dados)
+    {
+        $uri = '/api/v3/order/test';
+        $computeCommissionRates = 'true'; //Default Null. Caso não seja enviado, a Binance interpreta como false.
+        /*
+            $dados = [
+                'symbol' => 'BTCUSDT',
+                'side' => 'SELL', // 'BUY' ou 'SELL'
+                'type' => 'LIMIT', // 'LIMIT', 'MARKET', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'
+                'timeInForce' => 'GTC',
+                'quantity' => '1.00000',
+                // 'quoteOrderQty' => '100.00',
+                'price' => '91979.98000000',
+                // 'newClientOrderId' => 'teste',
+                // 'strategyId' => 0,
+                // 'strategyType' => 1000000,
+                // 'stopPrice' => '74.0000',
+                // 'trailingDelta' => 10,
+                // 'icebergQty' => '0.50000',
+                // 'newOrderRespType' => 'FULL', // 'ACK', 'RESULT', 'FULL'
+                // 'selfTradePreventionMode' => null, // 'EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'
+
+            ];
+        */
+
+        $params = [
+            'computeCommissionRates' => $computeCommissionRates,
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'type' => $dados['type'],
+            'timeInForce' => $dados['timeInForce'] ?? null,
+            'quantity' => $dados['quantity'] ?? null,
+            'quoteOrderQty' => $dados['quoteOrderQty'] ?? null,
+            'price' => $dados['price'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+            'strategyId' => $dados['strategyId'] ?? null,
+            'strategyType' => $dados['strategyType'] ?? null,
+            'stopPrice' => $dados['stopPrice'] ?? null,
+            'trailingDelta' => $dados['trailingDelta'] ?? null,
+            'icebergQty' => $dados['icebergQty'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+        ];
+
+        $response = $this->apiRequest('POST', $uri, $params);
+        return $response;
+    }
+
+    public function testNewOrderSOR(array $dados)
+    {
+        $computeCommissionRates = 'true';
+        /*
+            $dados = [
+                'symbol' => 'LTCUSDT',
+                'side' => 'SELL',
+                'type' => 'LIMIT',
+                'quantity' => 1,
+                'price' => 86.00,
+                'timeInForce' => 'FOK',
+                // 'newClientOrderId' => 'uniqueOrder123',
+                // 'strategyId' => 1000001,
+                // 'strategyType' => 1000002,
+                // 'icebergQty' => 0.5,
+                // 'newOrderRespType' => 'FULL', // ACK, RESULT, or FULL. Default to FULL
+                // 'selfTradePreventionMode' => 'EXPIRE_MAKER', //EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE
+                // 'recvWindow' => 50000,
+            ];
+        */
+        if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type']) || empty($dados['quantity'])) {
+            return [
+                'success' => false,
+                'message' => 'Parâmetros obrigatórios ausentes: symbol, side, type, quantity.'
+            ];
+        }
+
+        if (isset($dados['newOrderRespType']) && !in_array($dados['newOrderRespType'], ['ACK', 'RESULT', 'FULL'])) {
+            return [
+                'success' => false,
+                'message' => 'newOrderRespType deve ser: ACK, RESULT, FULL.'
+            ];
+        }
+
+        if (isset($dados['selfTradePreventionMode']) && !in_array($dados['selfTradePreventionMode'], ['EXPIRE_TAKER', 'EXPIRE_MAKER', 'EXPIRE_BOTH', 'NONE'])) {
+            return [
+                'success' => false,
+                'message' => 'selfTradePreventionMode deve ser: EXPIRE_TAKER, EXPIRE_MAKER, EXPIRE_BOTH, NONE.'
+            ];
+        }
+
+        if(isset($dados['icebergQty']) && $dados['type'] !== 'LIMIT') {
+            return [
+                'success' => false,
+                'message' => 'icebergQty apenas para LIMIT.'
+            ];
+        }
+
+        if($dados['type'] === 'LIMIT' && !isset($dados['timeInForce'])) {
+            return [
+                'success' => false,
+                'message' => 'timeInForce deve ser: GTC, FOK ou IOC.'
+            ];
+        }
+
+        $params = [
+            'computeCommissionRates' =>  $computeCommissionRates,
+            'symbol' => $dados['symbol'],
+            'side' => $dados['side'],
+            'type' => $dados['type'],
+            'quantity' => $dados['quantity'],
+            'price' => $dados['price'] ?? null,
+            'timeInForce' => $dados['timeInForce'] ?? null,
+            'newClientOrderId' => $dados['newClientOrderId'] ?? null,
+            'strategyId' => $dados['strategyId'] ?? null,
+            'strategyType' => $dados['strategyType'] ?? null,
+            'icebergQty' => $dados['icebergQty'] ?? null,
+            'newOrderRespType' => $dados['newOrderRespType'] ?? 'FULL',
+            'selfTradePreventionMode' => $dados['selfTradePreventionMode'] ?? null,
+        ];
+
+        $uri = '/api/v3/sor/order/test';
         return $this->apiRequest('POST', $uri, $params);
     }
 }
