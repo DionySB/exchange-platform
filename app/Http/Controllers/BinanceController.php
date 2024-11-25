@@ -4,20 +4,62 @@ namespace App\Http\Controllers;
 
 class BinanceController extends Controller
 {
-    private function apiRequest($method, $uri, $params = [])
+    public $transferTypes = [
+        1 => 'MAIN_UMFUTURE',
+        2 => 'MAIN_CMFUTURE',
+        3 => 'MAIN_MARGIN',
+        4 => 'UMFUTURE_MAIN',
+        5 => 'UMFUTURE_MARGIN',
+        6 => 'CMFUTURE_MAIN',
+        7 => 'CMFUTURE_MARGIN',
+        8 => 'MARGIN_MAIN',
+        9 => 'MARGIN_UMFUTURE',
+        10 => 'MARGIN_CMFUTURE',
+        11 => 'ISOLATEDMARGIN_MARGIN',
+        12 => 'MARGIN_ISOLATEDMARGIN',
+        13 => 'ISOLATEDMARGIN_ISOLATEDMARGIN',
+        14 => 'MAIN_FUNDING',
+        15 => 'FUNDING_MAIN',
+        16 => 'FUNDING_UMFUTURE',
+        17 => 'UMFUTURE_FUNDING',
+        18 => 'MARGIN_FUNDING',
+        19 => 'FUNDING_MARGIN',
+        20 => 'FUNDING_CMFUTURE',
+        21 => 'CMFUTURE_FUNDING',
+        22 => 'MAIN_OPTION',
+        23 => 'OPTION_MAIN',
+        24 => 'UMFUTURE_OPTION',
+        25 => 'OPTION_UMFUTURE',
+        26 => 'MARGIN_OPTION',
+        27 => 'OPTION_MARGIN',
+        28 => 'FUNDING_OPTION',
+        29 => 'OPTION_FUNDING',
+        30 => 'MAIN_PORTFOLIO_MARGIN',
+        31 => 'PORTFOLIO_MARGIN_MAIN',
+        32 => 'MAIN_ISOLATED_MARGIN',
+        33 => 'ISOLATED_MARGIN_MAIN',
+    ];
+
+    private function apiRequest($method, $uri, $params = [], $signed = true)
     {
         $apiKey = env('BINANCE_API_KEY');
         $secretKey = env('BINANCE_SECRET_KEY');
         $timestamp = round(microtime(true) * 1000);
-        $recvWindow = 5000;
+        $recvWindow = 20000;
 
-        $params['timestamp'] = $timestamp;
-        $params['recvWindow'] = $recvWindow;
-        $params = array_filter($params, fn($value) => !is_null($value));
-        $queryString = http_build_query($params);
-        $signature = hash_hmac('sha256', $queryString, $secretKey);
-        $url = "https://api.binance.com{$uri}?signature={$signature}";
+        if($signed !== false){
+            $params['timestamp'] = $timestamp;
+            $params['recvWindow'] = $recvWindow;
 
+            $params = array_filter($params, fn($value) => !is_null($value));
+            $queryString = http_build_query($params);
+            $signature = hash_hmac('sha256', $queryString, $secretKey);
+            $url = "https://api.binance.com{$uri}?signature={$signature}";
+        } else{
+            $params = array_filter($params, fn($value) => !is_null($value));
+            $queryString = http_build_query($params);
+            $url = "https://api.binance.com{$uri}?";
+        }
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
@@ -41,6 +83,13 @@ class BinanceController extends Controller
         curl_close($curl);
 
         return json_decode($response, true);
+    }
+
+    public function getAccountInfo()
+    {
+        $uri = '/api/v3/account';
+        $response = $this->apiRequest('GET', $uri);
+        return $response;
     }
 
     public function newOrder(array $dados)
@@ -68,7 +117,7 @@ class BinanceController extends Controller
         if (empty($dados['symbol']) || empty($dados['side']) || empty($dados['type'])) {
             return [
                 'success' => false,
-                'message' => 'Os campos symbol, side e type são obrigatórios.'
+                'message' => 'symbol, side e type são obrigatórios.'
             ];
         }
 
@@ -184,6 +233,16 @@ class BinanceController extends Controller
 
     /* Cancel Order (TRADE) */
     public function cancelOrderSpot(array $dados) {
+        /*
+            $dados = [
+                'symbol',
+                'orderId',
+                'origClientOrderId',
+                'newClientOrderId',
+                'cancelRestrictions' => '' //ONLY_NEW, ONLY_PARTIALLY_FILLED OR PARTIALLY_FILLED
+
+            ];
+        */
         if (empty($dados['orderId']) && empty($dados['origClientOrderId']) && empty($dados['cancelRestrictions'])) {
             return [
                 'success' => false,
@@ -397,7 +456,7 @@ class BinanceController extends Controller
     }
 
     /* All Orders (USER_DATA) */
-    public function getAllOrdersSpot($symbol ='', $orderId=null, $startTime = null, $endTime = null, $limit = 500)
+    public function getAllOrdersSpot($symbol = '', $orderId=null, $startTime = null, $endTime = null, $limit = 500)
     {
         $uri = '/api/v3/allOrders';
         $params = [
@@ -1188,5 +1247,682 @@ class BinanceController extends Controller
 
         $uri = '/api/v3/sor/order/test';
         return $this->apiRequest('POST', $uri, $params);
+    }
+
+    /* Market Data Endpoints */
+    public function testConectivity()
+    {
+        $uri = '/api/v3/ping';
+        $params = [];
+        $response = $this->apiRequest('GET', $uri, $params, false);
+        return $response;
+    }
+
+    public function getOrderBook($symbol, $limit = null)
+    {
+        if(!$symbol){
+            return [
+                'success' => false,
+                'message' => 'symbol deve ser mandatório.'
+            ];
+        }
+        $params = [
+            'symbol' => $symbol,
+            'limit' => $limit ?? 100
+        ];
+
+
+        $uri = '/api/v3/depth';
+        $response = $this->apiRequest('GET', $uri, $params, false);
+
+        return $response;
+    }
+    /* Wallet Endpoints */
+
+    /* System Status (System) */
+    public function getSystemStatus()
+    {
+        $uri = '/sapi/v1/system/status';
+
+        $response = $this->apiRequest('GET', $uri, false);
+
+        return $response;
+    }
+
+    /* All Coins' Information (USER_DATA) */
+    public function infoCoins()
+    {
+        $uri = '/sapi/v1/capital/config/getall';
+
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* Daily Account Snapshot (USER_DATA) */
+    public function getDailyAccountSnapshat($type, $startTime = null, $endTime = null, $limit = 7)
+    {
+        $uri = '/sapi/v1/accountSnapshot';
+
+        $params = [
+            'type' => $type, //'SPOT' 'MARGIN' ou 'FUTURE'
+            'startTime' => $startTime, //Default 7 dias.
+            'endTime' => $endTime, //Default 7 dias.
+            'limit' => $limit
+        ];
+        if(!in_array($params['type'], ['SPOT', 'MARGIN', 'FUTURE'])){
+            return [
+                'success' => false,
+                'message' => 'limit deve ser maior que 7 ou menor que 30 dias.'
+            ];
+        }
+        if($params['limit'] < 7 || $params['limit'] > 30){
+            return [
+                'success' => false,
+                'message' => 'limit deve ser maior que 7 ou menor que 30 dias.'
+            ];
+        }
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Disable Fast Withdraw Switch (USER_DATA) */
+    public function disableFastWithdraw()
+    {
+        $uri = '/sapi/v1/account/disableFastWithdrawSwitch';
+
+        $response = $this->apiRequest('POST', $uri);
+
+        return $response;
+    }
+
+    /* Enable Fast Withdraw Switch (USER_DATA) */
+    public function enableFastWithdraw()
+    {
+        $uri = '/sapi/v1/account/enableFastWithdrawSwitch';
+
+        $response = $this->apiRequest('POST', $uri);
+
+        return $response;
+    }
+
+    /* Withdraw(USER_DATA) */
+    public function withdraw(array $dados)
+    {
+        /*
+            $dados = [
+                'coin' => 'BTC',
+                'withdrawOrderId => null,
+                'address' => '',
+                'addressTag' => '',
+                'amount' => '',
+                'transactionFeeFlag' => //'true' ou 'false',
+                'name' => '',
+                'walletType' => '0' // 0-1
+            ];
+        */
+
+        if (empty($dados['coin']) || empty($dados['address']) || empty($dados['amount'])) {
+            return [
+                'success' => false,
+                'message' => 'coin, address e amount são obrigatórios.'
+            ];
+        }
+
+        $params = [
+            'coin' => $dados['coin'],
+            'withdrawOrderId' => $dados['withdrawOrderId'] ?? null,
+            'address' => $dados['address'],
+            'addressTag' => $dados['addressTag'] ?? null,
+            'amount' => $dados['amount'],
+            'transactionFeeFlag' => $dados['transactionFeeFlag'] ?? null,
+            'name' => $dados['name'] ?? null,
+            'walletType' => $dados['walletType'] ?? null,
+        ];
+        $uri = '/sapi/v1/capital/withdraw/apply';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Deposit History (supporting network) (USER_DATA) */
+    public function getDepositHistory(array $dados)
+    {
+        /*
+            $data = [
+                'includeSource' => 'BTC',
+                'coin' => '',
+                'status' => '' // 0:Email Sent / 1:  Cancelled / 2: Awaiting Approval / 3: Rejected // 4: Processing / 5: Failure / 6: Completed
+                'offset' => null, //Default 0
+                'limit' => '1000' //Default 1000
+                'startTime' => '', //Default 90 dias
+                'endTime' => '' Default Current Time
+            ];
+        */
+        $params = [
+            'coin' => $dados['coin'] ?? null,
+            'withdrawOrderId' => $dados['withdrawOrderId'] ?? null,
+            'status' => $dados['status'] ?? null,
+            'offset' => $dados['offset'] ?? null,
+            'limit' => $dados['limit'] ?? null,
+            'startTime' => $dados['startTime'] ?? null,
+            'endTime' => $dados['endTime'] ?? null
+        ];
+
+        $uri = '/sapi/v1/capital/deposit/hisrec';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Withdraw History (supporting network) (USER_DATA) */
+    public function getWithdrawHistory(array $dados)
+    {
+        /*
+            $dados = [
+                'coin' => $dados['coin'],
+                'withdrawOrderId' => '',
+                'status' => '' // 0:Email Sent / 1:  Cancelled / 2: Awaiting Approval / 3: Rejected // 4: Processing / 5: Failure / 6: Completed
+                'offset' => null,
+                'limit' => '1000' //Default 1000
+                'startTime' => '', //Default 90 dias
+                'endTime' => '' Default Current Time
+            ];
+        */
+
+        $params = [
+            'coin' => $dados['coin'] ?? null,
+            'withdrawOrderId' => $dados['withdrawOrderId'] ?? null,
+            'status' => $dados['status'] ?? null,
+            'offset' => $dados['offset'] ?? null,
+            'limit' => $dados['limit'] ?? null,
+            'startTime' => $dados['startTime'] ?? null,
+            'endTime' => $dados['endTime'] ?? null
+        ];
+        $uri = '/sapi/v1/capital/withdraw/history';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Deposit Address (supporting network) (USER_DATA) */
+    public function getDepositAddress($coin = '', $network = null, $amount = null)
+    {
+        $params = [
+            'coin' => $coin,
+            'network' => $network,
+            'amount' => $amount
+        ];
+
+        if(!$coin){
+            return [
+                'success' => false,
+                'message' => 'coin mandatório.'
+            ];
+        }
+        $uri = '/sapi/v1/capital/deposit/address';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Account Status (USER_DATA) */
+    public function getAccountStatus()
+    {
+        $uri = '/sapi/v1/account/status';
+
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* Account API Trading Status (USER_DATA) */
+    public function getAccountApiTradingStatus()
+    {
+        $uri = '/sapi/v1/account/apiTradingStatus';
+
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* DustLog(USER_DATA) */
+    public function getDustLog($accountType = null, $startTime = null, $endTime = null)
+    {
+
+        $params = [
+            'accountType' => $accountType,
+            'startTime' => $startTime,
+            'endTime' => $endTime
+        ];
+
+        if(!in_array($accountType, ['SPOT', 'MARGIN', null])){
+            return [
+                'success' => false,
+                'message' => 'accountType deve ser MARGIN ou SPOT.'
+            ];
+        }
+        $uri = '/sapi/v1/asset/dribblet';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Get Assets That Can Be Converted Into BNB (USER_DATA) */
+    public function getAssetCanConvertedBNB($accountType = null)
+    {
+
+        $params = [
+            'accountType' => $accountType,
+        ];
+
+        if(!in_array($accountType, ['SPOT', 'MARGIN', null])){
+            return [
+                'success' => false,
+                'message' => 'accountType deve ser MARGIN ou SPOT.'
+            ];
+        }
+        $uri = '/sapi/v1/asset/dust-btc';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Dust Transfer (USER_DATA) */
+    public function convertDustAssetsBNB(array $assets, $accountType = null)
+    {
+        if (empty($assets)) {
+            return [
+                'success' => false,
+                'message' => 'asset deve conter pelo menos um ativo.'
+            ];
+        }
+
+        $params = [
+            'asset' => implode(',', $assets),
+            'accountType' => $accountType,
+        ];
+        $uri = '/sapi/v1/asset/dust';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Asset Dividend Record (USER_DATA) */
+    public function getDividendRecord($asset = null, $startTime = null, $endTime = null, $limit = 20)
+    {
+        $params = [
+        'asset' => $asset,
+        'startTime' => $startTime,
+        'endTime' => $endTime,
+        'limit' => $limit ?? 20 // Default 20
+        ];
+
+        if($limit > 500){
+            return [
+                'success' => false,
+                'message' => 'limit máximo 500.'
+            ];
+        }
+        $uri = '/sapi/v1/asset/assetDividend';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Asset Detail (USER_DATA) */
+    public function getAssetDetail($asset = null)
+    {
+        $params = [
+            'asset' => $asset
+        ];
+        $uri = '/sapi/v1/asset/assetDetail';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Trade Fee (USER_DATA) */
+    public function getTradeFee($symbol = null)
+    {
+        $params = [
+         'symbol' => $symbol
+        ];
+
+        $uri = '/sapi/v1/asset/tradeFee';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* User Universal Transfer (USER_DATA) */
+    public function createUserUniversalTransfer(array $dados)
+    {
+        /*
+            $dados = [
+                'type' => '11', // Índice do tipo de transferência
+                'asset' => 'BTC',
+                'amount' => 0.01,
+                'fromSymbol' => '',
+                'toSymbol' => null,
+            ];
+        */
+
+        if (empty($dados['type']) || empty($dados['asset']) || empty($dados['amount'])) {
+            return [
+                'success' => false,
+                'message' => 'type, asset e amount são mandatórios.',
+            ];
+        }
+
+        if (!isset($this->transferTypes[$dados['type']])) {
+            return [
+                'success' => false,
+                'message' => 'type não é válido.',
+            ];
+        }
+
+        $type = $this->transferTypes[$dados['type']];
+
+        if (in_array($type, ['ISOLATEDMARGIN_MARGIN', 'ISOLATEDMARGIN_ISOLATEDMARGIN']) && !isset($dados['fromSymbol'])) {
+            return [
+                'success' => false,
+                'message' => 'fromSymbol é exigido quando type é ISOLATEDMARGIN_MARGIN ou ISOLATEDMARGIN_ISOLATEDMARGIN',
+            ];
+        }
+
+        if (in_array($type, ['MARGIN_ISOLATEDMARGIN', 'ISOLATEDMARGIN_ISOLATEDMARGIN']) && !isset($dados['toSymbol'])) {
+            return [
+                'success' => false,
+                'message' => 'toSymbol é exigido quando type é MARGIN_ISOLATEDMARGIN ou ISOLATEDMARGIN_ISOLATEDMARGIN',
+            ];
+        }
+
+        $params = [
+            'type' => $type,
+            'asset' => $dados['asset'],
+            'amount' => $dados['amount'],
+            'fromSymbol' => $dados['fromSymbol'] ?? null,
+            'toSymbol' => $dados['toSymbol'] ?? null,
+        ];
+
+        $uri = '/sapi/v1/asset/transfer';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Query User Universal Transfer History (USER_DATA) */
+    public function getQueryUserUniversalTransferHistory(array $dados)
+    {
+        /*
+            $dados = [
+                'type' => '',
+                'startTime' => null,
+                'endTime' => null,
+                'current' => null,
+                'size' => null,
+                'fromSymbol' => null,
+                'toSymbol' => null,
+            ];
+        */
+
+        if (empty($dados['type'])){
+            return [
+                'success' => false,
+                'message' => 'type é mandatório.'
+            ];
+        }
+
+        if($dados['size'] > 100){
+            return [
+                'success' => false,
+                'message' => 'size deve ser igual ou menor que 100.',
+            ];
+        }
+        if (!isset($this->transferTypes[$dados['type']])) {
+            return [
+                'success' => false,
+                'message' => 'O tipo de transferência especificado não é válido.',
+            ];
+        }
+
+        $type = $this->transferTypes[$dados['type']];
+        if (in_array($type, ['ISOLATEDMARGIN_MARGIN', 'ISOLATEDMARGIN_ISOLATEDMARGIN']) && !isset($dados['fromSymbol'])) {
+            return [
+                'success' => false,
+                'message' => 'fromSymbol é exigido quando type é ISOLATEDMARGIN_MARGIN ou ISOLATEDMARGIN_ISOLATEDMARGIN',
+            ];
+        }
+
+        if (in_array($type, ['MARGIN_ISOLATEDMARGIN', 'ISOLATEDMARGIN_ISOLATEDMARGIN']) && !isset($dados['toSymbol'])) {
+            return [
+                'success' => false,
+                'message' => 'toSymbol é exigido quando type é MARGIN_ISOLATEDMARGIN ou ISOLATEDMARGIN_ISOLATEDMARGIN',
+            ];
+        }
+
+        $params = [
+            'type' => $type,
+            'startTime' => $dados['startTime'] ?? null,
+            'endTime' => $dados['endTime'] ?? null,
+            'current' => $dados['current'] ?? null,
+            'size' => $dados['size'] ?? null,
+            'fromSymbol' => $dados['fromSymbol'] ?? null,
+            'toSymbol' => $dados['toSymbol'] ?? null,
+        ];
+        $uri = '/sapi/v1/asset/transfer';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Funding Wallet (USER_DATA) */
+    public function newFundingWallet($asset = null, $needBtcValuation = null)
+    {
+        $params = [
+            'asset' => $asset,
+            'needBtcValuation' => $needBtcValuation //true ou false - default false
+        ];
+
+        $uri = '/sapi/v1/asset/get-funding-asset';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* User Asset (USER_DATA) */
+    public function getUserAsset($asset = null, $needBtcValuation = null)
+    {
+        $params = [
+            'asset' => $asset,
+            'needBtcValuation' => $needBtcValuation //true ou false
+        ];
+
+        $uri = '/sapi/v3/asset/getUserAsset';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Get Cloud-Mining payment and refund history (USER_DATA) */
+    public function getCloudMiningAndRefundHistory(array $dados)
+    {
+        /*
+            $dados = [
+                'tranId' => null,
+                'clientTranId' => null,
+                'asset' => null,
+                'startTime' => '',
+                'endTime' => '',
+                'current => '1' // Default > 1
+                'size' => '10' // Default 10  < 100
+            ];
+        */
+
+        if(empty($dados['startTime']) || empty($dados['endTime'])){
+            return [
+                'success' => false,
+                'message' => 'startTime & endTime requeridos em formato UNIT.'
+            ];
+        }
+
+        if(isset($dados['size']) > 100){
+            return [
+                'success' => false,
+                'message' => 'Máximo de 100 para size.'
+            ];
+        }
+
+        $params = [
+            'tranId' => $dados['tranId'] ?? null,
+            'clientTranId' => $dados['clientTranId'] ?? null,
+            'asset' => $dados['asset'] ?? null,
+            'startTime' => $dados['startTime'],
+            'endTime' => $dados['endTime'],
+            'current' => $dados['current'] ?? null,
+            'size' => $dados['size'] ?? null
+        ];
+        $uri = '/sapi/v1/asset/ledger-transfer/cloud-mining/queryByPage';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Get API Key Permission (USER_DATA) */
+    public function getKeyPermission()
+    {
+        $uri = '/sapi/v1/account/apiRestrictions';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* Query auto-converting stable coins (USER_DATA) */
+    public function getAutoConvertingStableCoin()
+    {
+        $uri = '/sapi/v1/capital/contract/convertible-coins';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* One click arrival deposit apply (for expired address deposit) (USER_DATA) */
+    public function oneClickDepositApply(array $dados = [])
+    {
+        /*
+            $dados = [
+                'depositId' => null,
+                'txId' => null,
+                'subAccountId' => null,
+                'subUserId' => null,
+            ];
+        */
+        $params = [
+            'depositId' => $dados['depositId'] ?? null,
+            'txId' => $dados['txId'] ?? null,
+            'subAccountId' => $dados['subAccountId'] ?? null,
+            'subUserId' => $dados['subUserId'] ?? null
+        ];
+
+        $uri = '/sapi/v1/capital/deposit/credit-apply';
+        $response = $this->apiRequest('POST', $uri, $params);
+
+        return $response;
+    }
+
+    /* Fetch deposit address list with network(USER_DATA) */
+    public function fetchDepositAddressList($coin = '', $network = null)
+    {
+        $params = [
+            'coin' => $coin,
+            'network' => $network
+        ];
+
+        if (empty($coin)) {
+            return [
+                'success' => false,
+                'message' => 'O campo coin é obrigatório.'
+            ];
+        }
+
+        $uri = '/sapi/v1/capital/deposit/address/list';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Query User Wallet Balance (USER_DATA) */
+    public function queryUserWalletBalance()
+    {
+        $uri = '/sapi/v1/asset/wallet/balance';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* Query User Delegation History(For Master Account)(USER_DATA) */
+    public function queryDelegationHistory(array $dados)
+    {
+        /*
+            $dados = [
+                'email' => '',
+                'startTime => '',
+                'endTime' => '',
+                'type' => null,
+                'asset' => null,
+                'current' => null,
+                'size' = null
+            ];
+        */
+        if (empty($dados['email']) || empty($dados['startTime']) || empty($dados['endTime'])) {
+            return ['success' => false, 'message' => 'email, startTime e endTime são obrigatórios.'];
+        }
+
+        if (isset($dados['size']) > 100) {
+            return ['success' => false, 'message' => 'O tamanho máximo permitido para size é 100.'];
+        }
+
+        $params = [
+            'email' => $dados['email'],
+            'startTime' => $dados['startTime'],
+            'endTime' => $dados['endTime'],
+            'type' => $dados['type'] ?? null,
+            'asset' => $dados['asset'] ?? null,
+            'current' => $dados['current'] ?? null,
+            'size' => $dados['size'] ?? null
+        ];
+        $uri = '/sapi/v1/asset/custody/transfer-history';
+        $response = $this->apiRequest('GET', $uri, $params);
+
+        return $response;
+    }
+
+    /* Get symbols delist schedule for spot (MARKET_DATA) */
+    public function getSymbolsDelistScheduleSpot()
+    {
+        $uri = '/sapi/v1/spot/delist-schedule';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /*Fetch withdraw address list (USER_DATA) */
+    public function getWithdrawAddressList()
+    {
+        $uri = '/sapi/v1/capital/withdraw/address/list';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
+    }
+
+    /* Account info (USER_DATA) */
+    public function getWalletAccountInfo()
+    {
+        $uri = '/sapi/v1/account/info';
+        $response = $this->apiRequest('GET', $uri);
+
+        return $response;
     }
 }
