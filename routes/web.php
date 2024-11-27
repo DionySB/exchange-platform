@@ -1,9 +1,7 @@
 <?php
 
 use App\Http\Controllers\CoinCallController;
-use App\Http\Controllers\RouteController;
 use App\Http\Controllers\ExportCsvController;
-use App\Http\Controllers\OptionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
 /* User Related Infos */
 Route::get('account-info', [CoinCallController::class, 'getAccountInfo']);
 Route::get('summary-info/{symbol?}', [CoinCallController::class, 'getSummaryInfo']);
@@ -69,4 +68,13 @@ Route::get('/spread', [CoinCallController::class, 'getSpreadOP']);
 
 Route::get('/future/funding-rate', [CoinCallController::class, 'getFutureFundingRate']);
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+});
+
+Route::post('/password/email', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::get('/password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
