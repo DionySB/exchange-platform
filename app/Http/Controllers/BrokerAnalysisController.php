@@ -103,7 +103,7 @@ class BrokerAnalysisController extends Controller
 
         $opportunities = [];
 
-        // Compara cada corretora com todas as outras
+
         foreach ($orderBooks as $exchangeX => $dataX) {
             foreach ($orderBooks as $exchangeY => $dataY) {
                 if ($exchangeX !== $exchangeY) {
@@ -113,22 +113,42 @@ class BrokerAnalysisController extends Controller
                             foreach ($dataY['asks'] as $askY) {
                                 // Se tiver lucro na operação cria o index
                                 if ($bidX['price'] > $askY['price']) {
+                                    $fee = 0.001;
+
                                     $quantity = min($bidX['quantity'], $askY['quantity']);
                                     $profit = ($bidX['price'] - $askY['price']) * $quantity;
                                     $cost = $askY['price'] * $quantity;
+                                    $totalBUY = $quantity * $askY['price'];
+                                    $totalSELL = $quantity * $bidX['price'];
                                     $profit = round($profit, 4);
+
+                                    $feeBuy = $totalBUY * $fee; // Taxa de compra
+                                    $feeSell = $totalSELL * $fee; // Taxa de venda
+                                    $totalFees = $feeBuy + $feeSell;
+
+                                    // Calcular lucro e ROI com taxas
+                                    $profitWithFee = $profit - $totalFees;
+                                    $profitWithFee = round($profitWithFee, 4);
+
                                     if ($cost > 0) { // Caso tenha divisão por zero para não bugar
                                         $roi = ($profit / $cost) * 100;
                                         $roi = round($roi, 4);
 
+                                        $roiWithFee = ($profitWithFee / $cost) * 100;
+                                        $roiWithFee = round($roiWithFee, 4);
+
                                         $opportunities[] = [
-                                            'buy_exchange' => $exchangeNames[$exchangeY],
-                                            'sell_exchange' => $exchangeNames[$exchangeX],
-                                            'buy_price' => $askY['price'],
-                                            'sell_price' => $bidX['price'],
+                                            'buyExchange' => $exchangeNames[$exchangeY],
+                                            'sellExchange' => $exchangeNames[$exchangeX],
+                                            'buyPrice' => $askY['price'],
+                                            'sellPrice' => $bidX['price'],
                                             'quantity' => $quantity,
+                                            'totalBUY' => $totalBUY,
+                                            'totalSELL' => $totalSELL,
                                             'profit' => $profit,
-                                            'roi' => $roi
+                                            'roi' => $roi,
+                                            'profitWithFee' => $profitWithFee,
+                                            'roiWithFee' => $roiWithFee
                                         ];
                                     }
                                 }
@@ -138,6 +158,7 @@ class BrokerAnalysisController extends Controller
                 }
             }
         }
+
 
         return response()->json([
             'success' => true,
