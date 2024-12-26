@@ -103,53 +103,51 @@ class BrokerAnalysisController extends Controller
 
         $opportunities = [];
 
-
         foreach ($orderBooks as $exchangeX => $dataX) {
             foreach ($orderBooks as $exchangeY => $dataY) {
                 if ($exchangeX !== $exchangeY) {
-                    // Valida se existem ordens válidas em ambas as corretoras
                     if (!empty($dataX['bids']) && !empty($dataY['asks'])) {
                         foreach ($dataX['bids'] as $bidX) {
                             foreach ($dataY['asks'] as $askY) {
-                                // Se tiver lucro na operação cria o index
+                                // Se tiver lucro na operação, cria o índice
                                 if ($bidX['price'] > $askY['price']) {
-                                    $fee = 0.001;
+                                    $fee = 0.001; // Taxa de 0.1%
+                                    $quantity = min($bidX['quantity'], $askY['quantity']); // Pega o menor valor da comparação, garantindo que sempre a menor quantidade entre as corretoras seja negociada.
 
-                                    $quantity = min($bidX['quantity'], $askY['quantity']);
-                                    $profit = ($bidX['price'] - $askY['price']) * $quantity;
-                                    $cost = $askY['price'] * $quantity;
-                                    $totalBUY = $quantity * $askY['price'];
-                                    $totalSELL = $quantity * $bidX['price'];
+                                    $totalBUY = $quantity * $askY['price']; // valor total comprado
+                                    $totalSELL = $quantity * $bidX['price']; // valor total vendido
+
+                                    $profit = $totalSELL - $totalBUY;
                                     $profit = round($profit, 4);
 
-                                    $feeBuy = $totalBUY * $fee; // Taxa de compra
-                                    $feeSell = $totalSELL * $fee; // Taxa de venda
-                                    $totalFees = $feeBuy + $feeSell;
-
-                                    // Calcular lucro e ROI com taxas
-                                    $profitWithFee = $profit - $totalFees;
+                                    $feeBuy = $totalBUY * $fee;
+                                    $feeSell = $totalSELL * $fee;
+                                    $totalFees = $feeBuy + $feeSell; // Total de taxa aplicada no valor total vendido e comprado
+                                    $profitWithFee = $profit - $totalFees; // Subtrai as taxas do lucro
                                     $profitWithFee = round($profitWithFee, 4);
 
-                                    if ($cost > 0) { // Caso tenha divisão por zero para não bugar
-                                        $roi = ($profit / $cost) * 100;
+                                    if ($totalBUY > 0) { // Evitar divisão por zero
+                                        $roi = ($profit / $totalBUY) * 100; // ROI sem taxas
                                         $roi = round($roi, 4);
 
-                                        $roiWithFee = ($profitWithFee / $cost) * 100;
+                                        $roiWithFee = ($profitWithFee / $totalBUY) * 100; // ROI com taxas
                                         $roiWithFee = round($roiWithFee, 4);
 
-                                        $opportunities[] = [
-                                            'buyExchange' => $exchangeNames[$exchangeY],
-                                            'sellExchange' => $exchangeNames[$exchangeX],
-                                            'buyPrice' => $askY['price'],
-                                            'sellPrice' => $bidX['price'],
-                                            'quantity' => $quantity,
-                                            'totalBUY' => $totalBUY,
-                                            'totalSELL' => $totalSELL,
-                                            'profit' => $profit,
-                                            'roi' => $roi,
-                                            'profitWithFee' => $profitWithFee,
-                                            'roiWithFee' => $roiWithFee
-                                        ];
+                                        if($profitWithFee > 0){
+                                            $opportunities[] = [
+                                                'buyExchange' => $exchangeNames[$exchangeY],
+                                                'sellExchange' => $exchangeNames[$exchangeX],
+                                                'buyPrice' => $askY['price'],
+                                                'sellPrice' => $bidX['price'],
+                                                'quantity' => $quantity,
+                                                'totalBUY' => $totalBUY,
+                                                'totalSELL' => $totalSELL,
+                                                'profit' => $profit,
+                                                'roi' => $roi,
+                                                'profitWithFee' => $profitWithFee,
+                                                'roiWithFee' => $roiWithFee
+                                            ];
+                                        }
                                     }
                                 }
                             }
@@ -158,7 +156,6 @@ class BrokerAnalysisController extends Controller
                 }
             }
         }
-
 
         return response()->json([
             'success' => true,
