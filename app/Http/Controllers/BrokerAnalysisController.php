@@ -133,7 +133,7 @@ class BrokerAnalysisController extends Controller
                                         $roiWithFee = ($profitWithFee / $totalBUY) * 100; // ROI com taxas
                                         $roiWithFee = round($roiWithFee, 4);
 
-                                        if($profitWithFee > 0){
+                                        if($profitWithFee){
                                             $opportunities[] = [
                                                 'buyExchange' => $exchangeNames[$exchangeY],
                                                 'sellExchange' => $exchangeNames[$exchangeX],
@@ -155,6 +155,10 @@ class BrokerAnalysisController extends Controller
                     }
                 }
             }
+
+            usort($opportunities, function ($a, $b) {
+                return $b['profitWithFee'] <=> $a['profitWithFee'];
+            });
         }
 
         return response()->json([
